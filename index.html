@@ -205,7 +205,21 @@
       box-shadow:var(--shadow2);
       border:1px solid rgba(0,0,0,.06);
       cursor:pointer;
+      transition: opacity .18s ease;
     }
+
+    /* ✅ Cumplidos: “apagados” */
+    .objCard.done{
+      opacity:.62;
+    }
+    .objCard.done .objImg{
+      filter:saturate(.85) contrast(.95);
+    }
+    .objCard.done .objTitle,
+    .objCard.done .objMeta{
+      color: rgba(11,16,34,.55);
+    }
+
     .objImg{flex:1; background:center/cover no-repeat;}
     .objBody{
       padding:16px;
@@ -535,7 +549,11 @@
       display:flex;
       gap:10px;
       cursor:pointer;
+      transition: opacity .18s ease;
     }
+    /* ✅ Cumplidos apagados en Ajustes */
+    .miniItem.done{ opacity:.62; }
+
     .miniImg{width:72px;background:center/cover no-repeat;}
     .miniText{padding:10px 10px 10px 0;min-width:0;flex:1;}
     .miniText b{display:block;color:var(--ink);font-size:13px;line-height:1.2;}
@@ -855,7 +873,7 @@
                   </div>
 
                   <div class="field">
-                    <label>Fotos del móvil (local)</label>
+                    <label>Fotos del móvil (local) (la primera será la portada)</label>
                     <div class="fileRow">
                       <button type="button" id="pickLocalBtn">Añadir fotos</button>
                       <span id="localCount">0 seleccionadas</span>
@@ -970,236 +988,236 @@
   /* ================== STORAGE ================== */
   const STORAGE_KEY = "lalista_objetivos_v5_seed_19";
 
- const seed = [
-  {
-    id: 1,
-    titulo: "Visitar cataratas del Niágara",
-    cat: "Viajes",
-    coste: 1300,
-    done: false,
-    desc: "Las cataratas más icónicas del mundo. Quiero verlas de cerca, empaparme y quedarme un rato mirando sin prisa.",
-    place: "Niagara Falls, Canadá/EE.UU.",
-    lat: 43.0828,
-    lng: -79.0742,
-    imgs: ["https://imgcap.capturetheatlas.com/wp-content/uploads/2020/10/niagara-falls-fun-things-to-do-in-nyc.jpg"]
-  },
-  {
-    id: 2,
-    titulo: "La Puerta del Infierno (Turkmenistán)",
-    cat: "Viajes",
-    coste: 2200,
-    done: false,
-    desc: "El cráter de gas de Darvaza. Quiero verlo de noche, cuando parece literalmente otro planeta.",
-    place: "Darvaza, Turkmenistán",
-    lat: 40.2520,
-    lng: 58.4390,
-    imgs: ["https://e01-elmundo.uecdn.es/assets/multimedia/imagenes/2022/01/11/16418898392855.jpg"]
-  },
-  {
-    id: 3,
-    titulo: "Visitar la Isla de Pascua (Rapa Nui)",
-    cat: "Viajes",
-    coste: 3500,
-    done: false,
-    desc: "Rapa Nui y sus moáis. Quiero recorrer la isla en plan roadtrip tranquilo y ver el amanecer en Tongariki.",
-    place: "Isla de Pascua, Chile",
-    lat: -27.1127,
-    lng: -109.3497,
-    imgs: ["https://static.nationalgeographicla.com/files/styles/image_3200/public/01_20221001_rapa_nui_307.jpg?w=1900&h=1425"]
-  },
-  {
-    id: 4,
-    titulo: "Ir a Tomorrowland",
-    cat: "Experiencias",
-    coste: 1200,
-    done: false,
-    desc: "Una vez en la vida: festival gigante, escenario de fantasía y volver sin voz.",
-    place: "Boom, Bélgica",
-    lat: 51.0910,
-    lng: 4.3710,
-    imgs: ["https://tronica.fm/uploads/images/202510/image_870x_68f09651b2594.jpg"]
-  },
-  {
-    id: 5,
-    titulo: "Ver auroras boreales",
-    cat: "Viajes",
-    coste: 1500,
-    done: false,
-    desc: "Ir con paciencia (y abrigo serio). Si el cielo se enciende, ya está: objetivo desbloqueado.",
-    place: "Tromsø, Noruega",
-    lat: 69.6492,
-    lng: 18.9553,
-    imgs: ["https://images.unsplash.com/photo-1593378026483-2a1fd46a35bd?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8YXVyb3JhJTIwYm9yZWFsfGVufDB8fDB8fHww"]
-  },
-  {
-    id: 6,
-    titulo: "Hacer una travesía en moto de nieve",
-    cat: "Experiencias",
-    coste: 1800,
-    done: false,
-    desc: "Ruta por nieve con paisajes de postal. Quiero sentir el silencio del invierno, pero a 60 km/h.",
-    place: "Rovaniemi, Finlandia",
-    lat: 66.5039,
-    lng: 25.7294,
-    imgs: ["https://cdn-imgix.headout.com/media/images/5b1a01c30b1b9fe0554a875dec1b37a0-30956-Zakopane-Zakopane-SnowmobiletourandThermalPoolswithtransfer-04.jpg?auto=format&w=900&h=562.5&q=90&ar=16%3A10&crop=faces%2Ccenter&fit=crop"]
-  },
-  {
-    id: 7,
-    titulo: "Ver jugar a Stephen Curry",
-    cat: "Experiencias",
-    coste: 2200,
-    done: false,
-    desc: "Ver a Curry en directo. Triples imposibles, ambiente NBA y salir diciendo: 'vale, esto era otro nivel'.",
-    place: "Chase Center, San Francisco (EE.UU.)",
-    lat: 37.7680,
-    lng: -122.3877,
-    imgs: ["https://austinshowtime.shop/cdn/shop/files/websteph_1024x1024@2x.jpg?v=1717168063"]
-  },
-  {
-    id: 8,
-    titulo: "Ver un partido de la NBA en directo",
-    cat: "Experiencias",
-    coste: 2000,
-    done: false,
-    desc: "Entrar en un pabellón NBA y vivirlo como toca: previa, himno, show y partido a tope.",
-    place: "Madison Square Garden, Nueva York (EE.UU.)",
-    lat: 40.7505,
-    lng: -73.9934,
-    imgs: ["https://ewnqp79wvj7.exactdn.com/wp-content/uploads/2024/06/Match-NBA-SAlle-NBA-Los-Angeles-Clippers.jpg?strip=all"]
-  },
-  {
-    id: 9,
-    titulo: "Ver unas Finales de la NBA en directo",
-    cat: "Experiencias",
-    coste: 4000,
-    done: false,
-    desc: "Finales NBA: precios locos, sí. Pero una vez. El ambiente tiene que ser una barbaridad.",
-    place: "Sede variable (ej.: Los Ángeles, EE.UU.)",
-    lat: 34.0430,
-    lng: -118.2673,
-    imgs: ["https://wallpapers.com/images/hd/nba-finals-iconic-golden-trophy-21vc2qdll38jh5zv.jpg"]
-  },
-  {
-    id: 10,
-    titulo: "Esquiar (España)",
-    cat: "Experiencias",
-    coste: 500,
-    done: false,
-    desc: "Un finde de nieve en condiciones: aprender/mejorar, comer bien y acabar reventado pero feliz.",
-    place: "Sierra Nevada, Granada (España)",
-    lat: 37.0950,
-    lng: -3.3990,
-    imgs: ["https://i.pinimg.com/474x/ef/f6/64/eff6642a4e939908d4df9bfec2ef51d9.jpg"]
-  },
-  {
-    id: 11,
-    titulo: "Visitar el Taj Mahal",
-    cat: "Viajes",
-    coste: 1600,
-    done: false,
-    desc: "Agra y el Taj Mahal. Ir al amanecer para verlo con esa luz que parece irreal.",
-    place: "Agra, India",
-    lat: 27.1751,
-    lng: 78.0421,
-    imgs: ["https://i.pinimg.com/736x/39/a5/69/39a569733cd9a9ed352512183137479b.jpg"]
-  },
-  {
-    id: 12,
-    titulo: "Visitar la Gran Muralla China",
-    cat: "Viajes",
-    coste: 2200,
-    done: false,
-    desc: "Caminar un tramo de la Muralla y pensar: '¿cómo narices hicieron esto?'.",
-    place: "Mutianyu, China",
-    lat: 40.4319,
-    lng: 116.5704,
-    imgs: ["https://i.pinimg.com/736x/4c/46/72/4c46725a3d8cde0b13e5f79fabce4964.jpg"]
-  },
-  {
-    id: 13,
-    titulo: "Visitar el Carnaval de Venecia",
-    cat: "Viajes",
-    coste: 600,
-    done: false,
-    desc: "Máscaras, canales y ese rollo cinematográfico. Plan perfecto de 2–3 días.",
-    place: "Venecia, Italia",
-    lat: 45.4408,
-    lng: 12.3155,
-    imgs: ["https://i.pinimg.com/564x/c8/de/34/c8de34212a4d0a930fa0309fda083957.jpg"]
-  },
-  {
-    id: 14,
-    titulo: "Visitar el Carnaval de Río de Janeiro",
-    cat: "Viajes",
-    coste: 2300,
-    done: false,
-    desc: "Río en carnaval: energía total. Ver el Sambódromo y vivir la ciudad en modo locura controlada.",
-    place: "Sambódromo, Río (Brasil)",
-    lat: -22.9133,
-    lng: -43.1964,
-    imgs: ["https://www.shutterstock.com/image-photo/rio-brazil-march-3-2025-600nw-2593678661.jpg"]
-  },
-  {
-    id: 15,
-    titulo: "Viajar en crucero",
-    cat: "Experiencias",
-    coste: 1500,
-    done: false,
-    desc: "Hacer un crucero (rollo Mediterráneo). Desconectar, parar en varias ciudades y vivirlo sin prisas.",
-    place: "Puerto de Barcelona (España)",
-    lat: 41.3516,
-    lng: 2.1586,
-    imgs: ["https://i.pinimg.com/736x/52/30/1b/52301bbae2c6dab15e0831e6c0082a01.jpg"]
-  },
-  {
-    id: 16,
-    titulo: "Visitar el Coliseo Romano",
-    cat: "Viajes",
-    coste: 500,
-    done: false,
-    desc: "Roma clásica: Coliseo, foro y perderme por la ciudad como si fuera un videojuego histórico.",
-    place: "Roma, Italia",
-    lat: 41.8902,
-    lng: 12.4922,
-    imgs: ["https://media.istockphoto.com/id/972862150/es/foto/ciudad-de-roma-en-la-noche.jpg?s=612x612&w=0&k=20&c=hKTfqmyGC3UUq3-FV4duOmaUYtfvK73rnLmQYKsbeq8="]
-  },
-  {
-    id: 17,
-    titulo: "Visitar el Desierto del Sáhara",
-    cat: "Viajes",
-    coste: 900,
-    done: false,
-    desc: "Dunas, noche en haima, cielo lleno de estrellas. El desierto tiene que imponerte respeto.",
-    place: "Merzouga, Marruecos",
-    lat: 31.0801,
-    lng: -4.0133,
-    imgs: ["https://w0.peakpx.com/wallpaper/478/806/HD-wallpaper-sahara-desert-man-nature-sand-sky.jpg"]
-  },
-  {
-    id: 18,
-    titulo: "Visitar Chichén Itzá",
-    cat: "Viajes",
-    coste: 2000,
-    done: false,
-    desc: "Historia maya en directo. Y ya que estoy: cenotes + tacos (prioridades claras).",
-    place: "Yucatán, México",
-    lat: 20.6843,
-    lng: -88.5678,
-    imgs: ["https://images.unsplash.com/photo-1568402102990-bc541580b59f?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y2hpY2hlbiUyMGl0emElMkMlMjBtZXhpY298ZW58MHx8MHx8fDA%3D"]
-  },
-  {
-    id: 19,
-    titulo: "Visitar las pirámides de Egipto",
-    cat: "Viajes",
-    coste: 1700,
-    done: false,
-    desc: "Giza. Verlas con mis ojos y confirmar que no es 'una foto bonita': es una locura de la humanidad.",
-    place: "Giza, Egipto",
-    lat: 29.9792,
-    lng: 31.1342,
-    imgs: ["https://w0.peakpx.com/wallpaper/459/826/HD-wallpaper-pyramids-desert-piramide.jpg"]
-  }
-];
+  const seed = [
+    {
+      id: 1,
+      titulo: "Visitar cataratas del Niágara",
+      cat: "Viajes",
+      coste: 1300,
+      done: false,
+      desc: "Las cataratas más icónicas del mundo. Quiero verlas de cerca, empaparme y quedarme un rato mirando sin prisa.",
+      place: "Niagara Falls, Canadá/EE.UU.",
+      lat: 43.0828,
+      lng: -79.0742,
+      imgs: ["https://imgcap.capturetheatlas.com/wp-content/uploads/2020/10/niagara-falls-fun-things-to-do-in-nyc.jpg"]
+    },
+    {
+      id: 2,
+      titulo: "La Puerta del Infierno (Turkmenistán)",
+      cat: "Viajes",
+      coste: 2200,
+      done: false,
+      desc: "El cráter de gas de Darvaza. Quiero verlo de noche, cuando parece literalmente otro planeta.",
+      place: "Darvaza, Turkmenistán",
+      lat: 40.2520,
+      lng: 58.4390,
+      imgs: ["https://e01-elmundo.uecdn.es/assets/multimedia/imagenes/2022/01/11/16418898392855.jpg"]
+    },
+    {
+      id: 3,
+      titulo: "Visitar la Isla de Pascua (Rapa Nui)",
+      cat: "Viajes",
+      coste: 3500,
+      done: false,
+      desc: "Rapa Nui y sus moáis. Quiero recorrer la isla en plan roadtrip tranquilo y ver el amanecer en Tongariki.",
+      place: "Isla de Pascua, Chile",
+      lat: -27.1127,
+      lng: -109.3497,
+      imgs: ["https://static.nationalgeographicla.com/files/styles/image_3200/public/01_20221001_rapa_nui_307.jpg?w=1900&h=1425"]
+    },
+    {
+      id: 4,
+      titulo: "Ir a Tomorrowland",
+      cat: "Experiencias",
+      coste: 1200,
+      done: false,
+      desc: "Una vez en la vida: festival gigante, escenario de fantasía y volver sin voz.",
+      place: "Boom, Bélgica",
+      lat: 51.0910,
+      lng: 4.3710,
+      imgs: ["https://tronica.fm/uploads/images/202510/image_870x_68f09651b2594.jpg"]
+    },
+    {
+      id: 5,
+      titulo: "Ver auroras boreales",
+      cat: "Viajes",
+      coste: 1500,
+      done: false,
+      desc: "Ir con paciencia (y abrigo serio). Si el cielo se enciende, ya está: objetivo desbloqueado.",
+      place: "Tromsø, Noruega",
+      lat: 69.6492,
+      lng: 18.9553,
+      imgs: ["https://images.unsplash.com/photo-1593378026483-2a1fd46a35bd?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8YXVyb3JhJTIwYm9yZWFsfGVufDB8fDB8fHww"]
+    },
+    {
+      id: 6,
+      titulo: "Hacer una travesía en moto de nieve",
+      cat: "Experiencias",
+      coste: 1800,
+      done: false,
+      desc: "Ruta por nieve con paisajes de postal. Quiero sentir el silencio del invierno, pero a 60 km/h.",
+      place: "Rovaniemi, Finlandia",
+      lat: 66.5039,
+      lng: 25.7294,
+      imgs: ["https://cdn-imgix.headout.com/media/images/5b1a01c30b1b9fe0554a875dec1b37a0-30956-Zakopane-Zakopane-SnowmobiletourandThermalPoolswithtransfer-04.jpg?auto=format&w=900&h=562.5&q=90&ar=16%3A10&crop=faces%2Ccenter&fit=crop"]
+    },
+    {
+      id: 7,
+      titulo: "Ver jugar a Stephen Curry",
+      cat: "Experiencias",
+      coste: 2200,
+      done: false,
+      desc: "Ver a Curry en directo. Triples imposibles, ambiente NBA y salir diciendo: 'vale, esto era otro nivel'.",
+      place: "Chase Center, San Francisco (EE.UU.)",
+      lat: 37.7680,
+      lng: -122.3877,
+      imgs: ["https://austinshowtime.shop/cdn/shop/files/websteph_1024x1024@2x.jpg?v=1717168063"]
+    },
+    {
+      id: 8,
+      titulo: "Ver un partido de la NBA en directo",
+      cat: "Experiencias",
+      coste: 2000,
+      done: false,
+      desc: "Entrar en un pabellón NBA y vivirlo como toca: previa, himno, show y partido a tope.",
+      place: "Madison Square Garden, Nueva York (EE.UU.)",
+      lat: 40.7505,
+      lng: -73.9934,
+      imgs: ["https://ewnqp79wvj7.exactdn.com/wp-content/uploads/2024/06/Match-NBA-SAlle-NBA-Los-Angeles-Clippers.jpg?strip=all"]
+    },
+    {
+      id: 9,
+      titulo: "Ver unas Finales de la NBA en directo",
+      cat: "Experiencias",
+      coste: 4000,
+      done: false,
+      desc: "Finales NBA: precios locos, sí. Pero una vez. El ambiente tiene que ser una barbaridad.",
+      place: "Sede variable (ej.: Los Ángeles, EE.UU.)",
+      lat: 34.0430,
+      lng: -118.2673,
+      imgs: ["https://wallpapers.com/images/hd/nba-finals-iconic-golden-trophy-21vc2qdll38jh5zv.jpg"]
+    },
+    {
+      id: 10,
+      titulo: "Esquiar (España)",
+      cat: "Experiencias",
+      coste: 500,
+      done: false,
+      desc: "Un finde de nieve en condiciones: aprender/mejorar, comer bien y acabar reventado pero feliz.",
+      place: "Sierra Nevada, Granada (España)",
+      lat: 37.0950,
+      lng: -3.3990,
+      imgs: ["https://i.pinimg.com/474x/ef/f6/64/eff6642a4e939908d4df9bfec2ef51d9.jpg"]
+    },
+    {
+      id: 11,
+      titulo: "Visitar el Taj Mahal",
+      cat: "Viajes",
+      coste: 1600,
+      done: false,
+      desc: "Agra y el Taj Mahal. Ir al amanecer para verlo con esa luz que parece irreal.",
+      place: "Agra, India",
+      lat: 27.1751,
+      lng: 78.0421,
+      imgs: ["https://i.pinimg.com/736x/39/a5/69/39a569733cd9a9ed352512183137479b.jpg"]
+    },
+    {
+      id: 12,
+      titulo: "Visitar la Gran Muralla China",
+      cat: "Viajes",
+      coste: 2200,
+      done: false,
+      desc: "Caminar un tramo de la Muralla y pensar: '¿cómo narices hicieron esto?'.",
+      place: "Mutianyu, China",
+      lat: 40.4319,
+      lng: 116.5704,
+      imgs: ["https://i.pinimg.com/736x/4c/46/72/4c46725a3d8cde0b13e5f79fabce4964.jpg"]
+    },
+    {
+      id: 13,
+      titulo: "Visitar el Carnaval de Venecia",
+      cat: "Viajes",
+      coste: 600,
+      done: false,
+      desc: "Máscaras, canales y ese rollo cinematográfico. Plan perfecto de 2–3 días.",
+      place: "Venecia, Italia",
+      lat: 45.4408,
+      lng: 12.3155,
+      imgs: ["https://i.pinimg.com/564x/c8/de/34/c8de34212a4d0a930fa0309fda083957.jpg"]
+    },
+    {
+      id: 14,
+      titulo: "Visitar el Carnaval de Río de Janeiro",
+      cat: "Viajes",
+      coste: 2300,
+      done: false,
+      desc: "Río en carnaval: energía total. Ver el Sambódromo y vivir la ciudad en modo locura controlada.",
+      place: "Sambódromo, Río (Brasil)",
+      lat: -22.9133,
+      lng: -43.1964,
+      imgs: ["https://www.shutterstock.com/image-photo/rio-brazil-march-3-2025-600nw-2593678661.jpg"]
+    },
+    {
+      id: 15,
+      titulo: "Viajar en crucero",
+      cat: "Experiencias",
+      coste: 1500,
+      done: false,
+      desc: "Hacer un crucero (rollo Mediterráneo). Desconectar, parar en varias ciudades y vivirlo sin prisas.",
+      place: "Puerto de Barcelona (España)",
+      lat: 41.3516,
+      lng: 2.1586,
+      imgs: ["https://i.pinimg.com/736x/52/30/1b/52301bbae2c6dab15e0831e6c0082a01.jpg"]
+    },
+    {
+      id: 16,
+      titulo: "Visitar el Coliseo Romano",
+      cat: "Viajes",
+      coste: 500,
+      done: false,
+      desc: "Roma clásica: Coliseo, foro y perderme por la ciudad como si fuera un videojuego histórico.",
+      place: "Roma, Italia",
+      lat: 41.8902,
+      lng: 12.4922,
+      imgs: ["https://media.istockphoto.com/id/972862150/es/foto/ciudad-de-roma-en-la-noche.jpg?s=612x612&w=0&k=20&c=hKTfqmyGC3UUq3-FV4duOmaUYtfvK73rnLmQYKsbeq8="]
+    },
+    {
+      id: 17,
+      titulo: "Visitar el Desierto del Sáhara",
+      cat: "Viajes",
+      coste: 900,
+      done: false,
+      desc: "Dunas, noche en haima, cielo lleno de estrellas. El desierto tiene que imponerte respeto.",
+      place: "Merzouga, Marruecos",
+      lat: 31.0801,
+      lng: -4.0133,
+      imgs: ["https://w0.peakpx.com/wallpaper/478/806/HD-wallpaper-sahara-desert-man-nature-sand-sky.jpg"]
+    },
+    {
+      id: 18,
+      titulo: "Visitar Chichén Itzá",
+      cat: "Viajes",
+      coste: 2000,
+      done: false,
+      desc: "Historia maya en directo. Y ya que estoy: cenotes + tacos (prioridades claras).",
+      place: "Yucatán, México",
+      lat: 20.6843,
+      lng: -88.5678,
+      imgs: ["https://images.unsplash.com/photo-1568402102990-bc541580b59f?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y2hpY2hlbiUyMGl0emElMkMlMjBtZXhpY298ZW58MHx8MHx8fDA%3D"]
+    },
+    {
+      id: 19,
+      titulo: "Visitar las pirámides de Egipto",
+      cat: "Viajes",
+      coste: 1700,
+      done: false,
+      desc: "Giza. Verlas con mis ojos y confirmar que no es 'una foto bonita': es una locura de la humanidad.",
+      place: "Giza, Egipto",
+      lat: 29.9792,
+      lng: 31.1342,
+      imgs: ["https://w0.peakpx.com/wallpaper/459/826/HD-wallpaper-pyramids-desert-piramide.jpg"]
+    }
+  ];
 
   function loadObjetivos(){
     try{
@@ -1298,7 +1316,7 @@
     const list = objetivos.filter(o => cat === "Todos" || o.cat === cat);
 
     carousel.innerHTML = list.map(o => `
-      <article class="objCard" data-id="${o.id}">
+      <article class="objCard ${o.done ? "done" : ""}" data-id="${o.id}">
         <div class="objImg" style="background-image:url('${firstImg(o)}')"></div>
         <div class="objBody">
           <div>
@@ -1633,7 +1651,7 @@
       .slice()
       .sort((a,b)=> (a.done===b.done ? a.id-b.id : (a.done ? 1 : -1)))
       .map(o => `
-        <div class="miniItem" data-id="${o.id}">
+        <div class="miniItem ${o.done ? "done" : ""}" data-id="${o.id}">
           <div class="miniImg" style="background-image:url('${firstImg(o)}')"></div>
           <div class="miniText">
             <b>${escapeHTML(o.titulo)}</b>
@@ -1784,16 +1802,30 @@
       return;
     }
 
+    // ✅ FOTO LOCAL => PORTADA (imgs[0])
     let finalImgs = [];
+
+    // 1) Si hay fotos locales nuevas, la primera va como portada
+    if(pendingLocalImgs.length){
+      finalImgs.push(pendingLocalImgs[0]);
+    }
+
+    // 2) Luego URLs
     finalImgs.push(...data.urlImgs);
 
+    // 3) Mantener locales anteriores (si editas) y que no se pierdan
     if(editingId != null){
       const prev = objetivos.find(o => o.id === editingId);
       const keepLocal = (prev?.imgs || []).filter(src => typeof src === "string" && src.startsWith("data:"));
       finalImgs.push(...keepLocal);
     }
 
-    finalImgs.push(...pendingLocalImgs);
+    // 4) Resto de locales nuevas (a partir de la segunda)
+    if(pendingLocalImgs.length > 1){
+      finalImgs.push(...pendingLocalImgs.slice(1));
+    }
+
+    // 5) Limpieza
     finalImgs = Array.from(new Set(finalImgs)).filter(Boolean);
 
     if(!finalImgs.length){
