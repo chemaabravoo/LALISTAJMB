@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>La Lista</title>
 
+  <!-- Leaflet (Mapa) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -12,15 +13,20 @@
     :root{
       --text:#f3f4f6;
       --muted:rgba(243,244,246,.72);
+
       --card:#ffffff;
       --ink:#0b1022;
       --inkMuted:rgba(11,16,34,.55);
+
       --pill:rgba(0,0,0,.06);
       --pillActive:rgba(0,0,0,.12);
+
       --navBg:#ffffff;
       --stroke:rgba(0,0,0,.10);
+
       --cta:#23c7b6;
       --cta2:#1aa99c;
+
       --shadow:0 18px 60px rgba(0,0,0,.22);
       --shadow2:0 14px 34px rgba(0,0,0,.12);
     }
@@ -29,7 +35,7 @@
     html,body{height:100%}
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto;
-      background:#0f172a;
+      background:#000;
       color:var(--text);
     }
 
@@ -107,7 +113,7 @@
       font-size:16px;
       font-weight:750;
       background:linear-gradient(180deg,var(--cta),var(--cta2));
-      color:#0f172a;
+      color:#062a26;
       cursor:pointer;
     }
     .btn:active{transform:translateY(1px)}
@@ -115,7 +121,7 @@
     /* ================= APP SHELL ================= */
     .app{
       height:100%;
-      background:#0f172a;
+      background:#123d1f;
       display:flex;
     }
 
@@ -173,6 +179,7 @@
     }
     .tab.active{background:var(--pillActive); color:var(--ink);}
 
+    /* ✅ Ideas tabs (NO usa .tab para no romper listeners) */
     .ideaTabs{display:flex;gap:10px;margin-bottom:12px;}
     .ideaTab{
       padding:10px 14px;
@@ -215,6 +222,7 @@
       transition: opacity .18s ease;
     }
 
+    /* ✅ Cumplidos: "apagados" */
     .objCard.done{ opacity:.62; }
     .objCard.done .objImg{ filter:saturate(.85) contrast(.95); }
     .objCard.done .objTitle,
@@ -478,7 +486,7 @@
     .navBtn.active{background:#0b1022;color:#fff;}
     .navBtn:active{transform:translateY(1px)}
 
-    /* MODALES */
+    /* MODAL AJUSTES */
     .modalBack{
       position:absolute; inset:0;
       background:rgba(0,0,0,.45);
@@ -552,7 +560,7 @@
       transition: opacity .18s ease;
     }
     .miniItem.done{ opacity:.62; }
-    .miniImg{width:72px;height:72px;background:center/cover no-repeat;flex:0 0 auto;}
+    .miniImg{width:72px;background:center/cover no-repeat;}
     .miniText{padding:10px 10px 10px 0;min-width:0;flex:1;}
     .miniText b{display:block;color:var(--ink);font-size:13px;line-height:1.2;}
     .miniText span{display:block;margin-top:6px;color:rgba(11,16,34,.55);font-weight:700;font-size:12px;}
@@ -696,27 +704,23 @@
     /* ================= WIZARD ================= */
     .wizardStep{display:none;}
     .wizardStep.active{display:block;}
-    .wizardDots{display:flex;gap:8px;justify-content:center;margin:8px 0 10px;}
+    .wizardDots{display:flex;gap:8px;justify-content:center;margin:8px 0 2px;}
     .dot{width:8px;height:8px;border-radius:999px;background:rgba(11,16,34,.18);}
     .dot.active{background:rgba(11,16,34,.75);}
-
-    /* COVER GRID */
     .coverGrid{
       display:grid;
       grid-template-columns:1fr 1fr 1fr;
       gap:10px;
       margin-top:10px;
-      margin-bottom:10px;
     }
     .coverOpt{
       border-radius:14px;
       border:2px solid rgba(0,0,0,.10);
       overflow:hidden;
       cursor:pointer;
-      background:#f0f0f0;
+      background:#fff;
       box-shadow:var(--shadow2);
-      transition: transform .12s ease, border-color .12s ease;
-      position:relative;
+      transition: transform .12s ease, border-color .12s ease, opacity .12s ease;
     }
     .coverOpt:active{transform:translateY(1px)}
     .coverOpt img{
@@ -726,57 +730,13 @@
       display:block;
     }
     .coverOpt.selected{
-      border-color:rgba(35,199,182,.85);
+      border-color: rgba(35,199,182,.85);
     }
     .coverOpt .cap{
-      padding:6px 8px;
-      font-size:11px;
+      padding:8px 10px;
+      font-size:12px;
       font-weight:900;
       color:rgba(11,16,34,.70);
-    }
-    .coverOpt.loading img{
-      opacity:0;
-    }
-    .coverSkeleton{
-      width:100%;
-      height:78px;
-      background:linear-gradient(90deg,#e8e8e8 25%,#f5f5f5 50%,#e8e8e8 75%);
-      background-size:200% 100%;
-      animation:shimmer 1.4s infinite;
-      border-radius:12px 12px 0 0;
-    }
-    @keyframes shimmer{
-      0%{background-position:200% 0}
-      100%{background-position:-200% 0}
-    }
-
-    /* PEXELS CREDIT */
-    .pexelsCredit{
-      font-size:10px;
-      color:rgba(11,16,34,.40);
-      font-weight:700;
-      text-align:right;
-      padding:2px 2px 6px;
-    }
-    .pexelsCredit a{
-      color:rgba(11,16,34,.55);
-      text-decoration:none;
-    }
-
-    /* API KEY NOTICE */
-    .apiNotice{
-      background:rgba(255,193,7,.12);
-      border:1px solid rgba(255,193,7,.40);
-      border-radius:12px;
-      padding:10px 12px;
-      font-size:12px;
-      color:rgba(11,16,34,.75);
-      font-weight:700;
-      margin-bottom:10px;
-    }
-    .apiNotice a{
-      color:#0b1022;
-      text-decoration:underline;
     }
   </style>
 </head>
@@ -791,13 +751,16 @@
       <div class="lbCounter" id="lbCounter">1/1</div>
       <div style="width:42px;height:42px;"></div>
     </div>
+
     <div class="lbStage" id="lbStage">
       <img class="lbImg" id="lbImg" alt="Foto" />
     </div>
+
     <div class="lbNav">
       <button class="lbBtn" id="lbPrev" aria-label="Anterior">‹</button>
       <button class="lbBtn" id="lbNext" aria-label="Siguiente">›</button>
     </div>
+
     <div class="lbHint">Deslice ◀ ▶ para cambiar · toque fuera para cerrar</div>
   </div>
 
@@ -825,6 +788,7 @@
     <section class="app">
       <div class="appShell">
 
+        <!-- ✅ TOPBAR con buscador + ajustes -->
         <div class="topbar">
           <h1 id="pageTitle">Mis objetivos</h1>
           <div style="display:flex;gap:8px;">
@@ -839,6 +803,8 @@
             <button class="tab" data-cat="Viajes">Viajes</button>
             <button class="tab" data-cat="Experiencias">Experiencias</button>
           </div>
+
+          <!-- ✅ Botón Añadir objetivo (wizard) -->
           <div style="padding:0 16px 12px;">
             <button class="btn" id="addWizardBtn">Añadir objetivo</button>
           </div>
@@ -880,32 +846,40 @@
                 <div class="sub">Lo que queda</div>
               </div>
             </div>
+
             <div class="sectionTitle">Pendientes</div>
             <div class="list" id="listPend"></div>
+
             <div class="sectionTitle" style="margin-top:14px;">Cumplidos</div>
             <div class="list" id="listDone"></div>
           </div>
         </div>
 
-        <!-- AJUSTES MODAL -->
+        <!-- AJUSTES MODAL (TUYO) -->
         <div class="modalBack" id="settingsBack">
           <div class="modal" role="dialog" aria-modal="true">
             <div class="modalHead">
               <strong>Ajustes · Objetivos</strong>
               <button class="close" id="settingsClose" aria-label="Cerrar">✕</button>
             </div>
+
             <div class="modalBody">
+              <!-- LISTA -->
               <div id="settingsListView">
                 <div class="smallNote">Toque un objetivo para editarlo. O cree uno nuevo.</div>
                 <div class="miniList" id="settingsList"></div>
               </div>
+
+              <!-- FORM -->
               <div id="settingsFormView" style="display:none;">
                 <div class="smallNote" id="formModeNote">Editar objetivo</div>
+
                 <form class="form" id="objForm" onsubmit="return false;">
                   <div class="field">
                     <label>Título</label>
                     <input id="fTitle" type="text" placeholder="Ej: Ver auroras boreales" />
                   </div>
+
                   <div class="inline">
                     <div class="field">
                       <label>Categoría</label>
@@ -921,18 +895,22 @@
                       <input id="fCost" type="number" min="0" step="1" placeholder="0" />
                     </div>
                   </div>
+
                   <div class="switchRow">
                     <span>¿Cumplido?</span>
                     <input id="fDone" type="checkbox" />
                   </div>
+
                   <div class="field">
                     <label>Descripción</label>
                     <textarea id="fDesc" placeholder="Escriba el por qué, el plan, el detalle…"></textarea>
                   </div>
+
                   <div class="field">
                     <label>Imagen principal (URL)</label>
                     <input id="fImg0" type="url" placeholder="https://…" />
                   </div>
+
                   <div class="inline">
                     <div class="field">
                       <label>Miniatura 1 (URL)</label>
@@ -943,23 +921,27 @@
                       <input id="fImg2" type="url" placeholder="https://…" />
                     </div>
                   </div>
+
                   <div class="field">
                     <label>Miniatura 3 (URL)</label>
                     <input id="fImg3" type="url" placeholder="https://…" />
                   </div>
+
                   <div class="field">
-                    <label>Fotos del móvil (local) — la primera será portada</label>
+                    <label>Fotos del móvil (local) (la primera será la portada)</label>
                     <div class="fileRow">
                       <button type="button" id="pickLocalBtn">Añadir fotos</button>
                       <span id="localCount">0 seleccionadas</span>
                     </div>
                     <input class="hiddenInput" id="localFiles" type="file" accept="image/*" multiple />
-                    <div class="smallNote">Se guardan en localStorage. Muchas fotos grandes puede agotar el límite.</div>
+                    <div class="smallNote">Se guardan en localStorage. Muchas fotos grandes = puede petar el límite.</div>
                   </div>
+
                   <div class="field">
                     <label>Lugar (texto)</label>
                     <input id="fPlace" type="text" placeholder="Ej: Tromsø, Noruega" />
                   </div>
+
                   <div class="inline">
                     <div class="field">
                       <label>Latitud</label>
@@ -970,23 +952,27 @@
                       <input id="fLng" type="number" step="0.000001" placeholder="Ej: 18.9553" />
                     </div>
                   </div>
+
                   <div class="smallNote">Si no pone lat/lng, el objetivo no aparece en el mapa.</div>
                 </form>
               </div>
             </div>
+
             <div class="modalActions" id="settingsActionsList">
               <button class="ghost" id="btnAdd">Añadir</button>
               <button class="primary" id="btnCloseList">Cerrar</button>
             </div>
+
             <div class="modalActions" id="settingsActionsForm" style="display:none;">
               <button class="danger" id="btnDelete">Borrar</button>
               <button class="ghost" id="btnBackToList">Volver</button>
               <button class="primary" id="btnSave">Guardar</button>
             </div>
+
           </div>
         </div>
 
-        <!-- IDEAS MODAL -->
+        <!-- ✅ IDEAS MODAL (NUEVO) -->
         <div class="modalBack" id="ideasBack">
           <div class="modal" role="dialog" aria-modal="true">
             <div class="modalHead">
@@ -1008,13 +994,14 @@
           </div>
         </div>
 
-        <!-- WIZARD MODAL -->
+        <!-- ✅ WIZARD MODAL (NUEVO) -->
         <div class="modalBack" id="wizardBack">
           <div class="modal" role="dialog" aria-modal="true">
             <div class="modalHead">
               <strong>Nuevo objetivo</strong>
               <button class="close" id="wizardClose" aria-label="Cerrar">✕</button>
             </div>
+
             <div class="modalBody">
               <div class="wizardDots" id="wizardDots"></div>
 
@@ -1070,30 +1057,13 @@
               </div>
 
               <div class="wizardStep" data-step="4">
-                <div class="smallNote">Paso 5 · Foto · la primera foto local será portada</div>
-
-                <!-- Buscador Pexels -->
+                <div class="smallNote">Paso 5 · Foto (URL o local) · la primera local será portada</div>
                 <div class="field">
-                  <label>Buscar imágenes (Pexels)</label>
-                  <div style="display:flex;gap:8px;">
-                    <input id="wSearchQuery" type="text" placeholder="Ej: aurora boreal noruega" style="flex:1;" />
-                    <button type="button" id="wSearchBtn" style="border:none;border-radius:14px;padding:12px 14px;background:#0b1022;color:#fff;font-weight:900;cursor:pointer;font-size:13px;white-space:nowrap;">Buscar</button>
-                  </div>
-                </div>
-
-                <div id="pexelsApiNotice" class="apiNotice" style="display:none;">
-                  ⚠️ Añade tu API key de <a href="https://www.pexels.com/api/" target="_blank">Pexels (gratis)</a> en el código para activar la búsqueda de imágenes.
-                </div>
-
-                <div class="coverGrid" id="coverGrid"></div>
-                <div class="pexelsCredit" id="pexelsCredit" style="display:none;">
-                  Fotos de <a href="https://www.pexels.com" target="_blank">Pexels</a>
-                </div>
-
-                <div class="field" style="margin-top:8px;">
-                  <label>O pega una URL directamente</label>
+                  <label>Imagen principal (URL)</label>
                   <input id="wImgUrl" type="url" placeholder="https://…" />
                 </div>
+                <div class="smallNote">O elija una portada automática (3 opciones)</div>
+                <div class="coverGrid" id="coverGrid"></div>
 
                 <div class="field">
                   <label>Fotos del móvil (local)</label>
@@ -1102,7 +1072,7 @@
                     <span id="wLocalCount">0 seleccionadas</span>
                   </div>
                   <input class="hiddenInput" id="wLocalFiles" type="file" accept="image/*" multiple />
-                  <div class="smallNote">Muchas fotos grandes pueden llenar el límite de storage local.</div>
+                  <div class="smallNote">Ojo: muchas fotos grandes pueden llenar el límite de storage local.</div>
                 </div>
               </div>
             </div>
@@ -1134,15 +1104,19 @@
       <div class="detailShell">
         <div class="detailHero" id="detailHero" title="Toque para ver fotos"></div>
         <div class="detailOverlay"></div>
+
         <div class="detailTopBtns">
           <button class="iconBtn" id="backBtn" aria-label="Volver">←</button>
           <button class="iconBtn" id="toggleDoneTop" aria-label="Marcar">♡</button>
         </div>
+
         <div class="detailThumbs" id="detailThumbs"></div>
+
         <div class="detailTitleBlock">
           <h2 id="detailTitle">—</h2>
           <div class="subline" id="detailSub">—</div>
         </div>
+
         <div class="sheet">
           <div class="chips">
             <div class="chip">
@@ -1158,8 +1132,10 @@
               <div class="v" id="chipCost">—</div>
             </div>
           </div>
+
           <div class="descTitle">Descripción</div>
           <div class="desc" id="detailDesc">—</div>
+
           <div class="sheetBottom">
             <div>
               <div style="font-size:12px;color:rgba(11,16,34,.55);font-weight:900;">Coste total</div>
@@ -1168,6 +1144,7 @@
             <button class="action" id="toggleDoneBtn" aria-label="Cambiar estado">›</button>
           </div>
         </div>
+
       </div>
     </section>
   </div>
@@ -1175,1017 +1152,1069 @@
 </div>
 
 <script>
-/* ================== PEXELS API ================== */
-// ⚠️ IMPORTANTE: Reemplaza con tu API key gratuita de https://www.pexels.com/api/
-const PEXELS_API_KEY = "TU_API_KEY_AQUI";
+  /* ================== STORAGE ================== */
+  const STORAGE_KEY = "lalista_objetivos_v6_clean";
 
-async function fetchPexelsImages(query, perPage){
-  perPage = perPage || 3;
-  const hasKey = PEXELS_API_KEY && PEXELS_API_KEY !== "TU_API_KEY_AQUI";
-
-  if(!hasKey){
-    return { photos: getFallbackImages(query), hasKey: false };
+  function loadObjetivos(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      const data = JSON.parse(raw);
+      if(!Array.isArray(data)) return [];
+      return data;
+    }catch{
+      return [];
+    }
   }
 
-  try{
-    const url = "https://api.pexels.com/v1/search?query="
-      + encodeURIComponent(query)
-      + "&per_page=" + perPage
-      + "&orientation=landscape";
+  function saveObjetivos(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(objetivos));
+  }
 
-    const res = await fetch(url, {
-      headers: { "Authorization": PEXELS_API_KEY }
-    });
+  let objetivos = loadObjetivos();
 
-    if(!res.ok) throw new Error("Pexels error " + res.status);
+  /* ================== HELPERS ================== */
+  const $ = (q) => document.querySelector(q);
+  const $$ = (q) => document.querySelectorAll(q);
 
-    const data = await res.json();
+  function eur(n){
+    return (Math.round((Number(n)||0) * 100) / 100).toLocaleString("es-ES") + "€";
+  }
 
-    if(!data.photos || !data.photos.length){
-      return { photos: getFallbackImages(query), hasKey: true };
+  function escapeHTML(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[s]));
+  }
+
+  function firstImg(o){
+    return (o.imgs && o.imgs.length) ? o.imgs[0] : "";
+  }
+
+  function generateImageSuggestions(title, cat){
+    const base = "https://source.unsplash.com/600x400/?";
+    const query = encodeURIComponent(title + "," + cat);
+    return [
+      base + query + "&sig=1",
+      base + query + "&sig=2",
+      base + query + "&sig=3"
+    ];
+  }
+
+  /* ================== SCREENS ================== */
+  const screenOnboarding = $("#screen-onboarding");
+  const screenApp = $("#screen-app");
+  const screenDetail = $("#screen-detail");
+
+  const pageTitle = $("#pageTitle");
+  const homeHeader = $("#homeHeader");
+
+  const viewHome = $("#view-home");
+  const viewCompass = $("#view-compass");
+  const viewProfile = $("#view-profile");
+
+  function showOnly(view){
+    viewHome.style.display = (view==="home") ? "block" : "none";
+    viewCompass.style.display = (view==="compass") ? "block" : "none";
+    viewProfile.style.display = (view==="profile") ? "block" : "none";
+  }
+
+  function setNavActive(which){
+    $$(".navBtn").forEach(b => b.classList.remove("active"));
+    $(`.navBtn[data-nav="${which}"]`).classList.add("active");
+  }
+
+  function showView(which){
+    setNavActive(which);
+
+    if(which === "home"){
+      pageTitle.textContent = "Mis objetivos";
+      homeHeader.style.display = "block";
+      showOnly("home");
+      return;
     }
 
-    const photos = data.photos.map(function(p){
-      return {
-        url: p.src.large2x || p.src.large,
-        thumb: p.src.medium,
-        photographer: p.photographer,
-        photographerUrl: p.photographer_url
-      };
+    if(which === "compass"){
+      pageTitle.textContent = "Mapa";
+      homeHeader.style.display = "none";
+      showOnly("compass");
+      initMapIfNeeded();
+      setTimeout(() => {
+        map.invalidateSize();
+        renderMapMarkers();
+      }, 60);
+      return;
+    }
+
+    if(which === "profile"){
+      pageTitle.textContent = "Perfil";
+      homeHeader.style.display = "none";
+      showOnly("profile");
+      renderProfile();
+      return;
+    }
+  }
+
+  $$(".navBtn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.nav)));
+
+  /* ================== HOME ================== */
+  const carousel = $("#carousel");
+  let currentCat = "Todos";
+
+  function renderHome(cat="Todos"){
+    currentCat = cat;
+    const list = objetivos.filter(o => cat === "Todos" || o.cat === cat);
+
+    carousel.innerHTML = list.map(o => `
+      <article class="objCard ${o.done ? "done" : ""}" data-id="${o.id}">
+        <div class="objImg" style="background-image:url('${firstImg(o)}')"></div>
+        <div class="objBody">
+          <div>
+            <div class="objTitle">${escapeHTML(o.titulo)}</div>
+            <div class="objMeta">${escapeHTML(o.cat)} · ${eur(o.coste)}${o.place ? " · " + escapeHTML(o.place) : ""}</div>
+          </div>
+          <div class="badge ${o.done ? "done" : ""}">${o.done ? "Cumplido" : o.cat}</div>
+        </div>
+      </article>
+    `).join("");
+
+    carousel.scrollTo({left:0, behavior:"auto"});
+  }
+
+  $$(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+      $$(".tab").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      renderHome(t.dataset.cat);
+    });
+  });
+
+  carousel.addEventListener("click", (e) => {
+    const card = e.target.closest(".objCard");
+    if(!card) return;
+    openDetail(Number(card.dataset.id));
+  });
+
+  /* ================== PROFILE ================== */
+  function renderProfile(){
+    const pend = objetivos.filter(o => !o.done);
+    const done = objetivos.filter(o => o.done);
+
+    const costTotal = objetivos.reduce((a,o)=>a+(Number(o.coste)||0),0);
+    const costPend = pend.reduce((a,o)=>a+(Number(o.coste)||0),0);
+    const costDone = done.reduce((a,o)=>a+(Number(o.coste)||0),0);
+
+    $("#kpiPend").textContent = pend.length;
+    $("#kpiDone").textContent = done.length;
+    $("#kpiCostTotal").textContent = eur(costTotal);
+    $("#kpiCostPend").textContent = eur(costPend);
+
+    $("#listPend").innerHTML = pend.length ? pend.map(o => `
+      <div class="rowItem">
+        <div class="rowLeft">
+          <strong>${escapeHTML(o.titulo)}</strong>
+          <small>${escapeHTML(o.cat)}${o.place ? " · " + escapeHTML(o.place) : ""}</small>
+        </div>
+        <div class="cost">${eur(o.coste||0)}</div>
+      </div>
+    `).join("") : `<div class="rowItem"><div class="rowLeft"><strong>Todo hecho 😮‍💨</strong><small>No hay pendientes.</small></div><div class="cost">0€</div></div>`;
+
+    $("#listDone").innerHTML = done.length ? done.map(o => `
+      <div class="rowItem">
+        <div class="rowLeft">
+          <strong>${escapeHTML(o.titulo)}</strong>
+          <small>${escapeHTML(o.cat)}${o.place ? " · " + escapeHTML(o.place) : ""}</small>
+        </div>
+        <div class="cost">${eur(o.coste||0)}</div>
+      </div>
+    `).join("") : `<div class="rowItem"><div class="rowLeft"><strong>Aún ninguno cumplido</strong><small>Se empieza por uno.</small></div><div class="cost">${eur(costDone)}</div></div>`;
+  }
+
+  /* ================== LIGHTBOX ================== */
+  const lightbox = $("#lightbox");
+  const lbImg = $("#lbImg");
+  const lbCounter = $("#lbCounter");
+  const lbClose = $("#lbClose");
+  const lbPrev = $("#lbPrev");
+  const lbNext = $("#lbNext");
+  const lbStage = $("#lbStage");
+
+  let galleryImgs = [];
+  let galleryIdx = 0;
+
+  function openLightbox(imgs, startIndex=0){
+    galleryImgs = Array.isArray(imgs) ? imgs.filter(Boolean) : [];
+    if(!galleryImgs.length) return;
+    galleryIdx = Math.max(0, Math.min(startIndex, galleryImgs.length-1));
+    renderLightbox();
+    lightbox.classList.add("show");
+  }
+
+  function closeLightbox(){ 
+    lightbox.classList.remove("show"); 
+  }
+
+  function renderLightbox(){
+    lbImg.src = galleryImgs[galleryIdx];
+    lbCounter.textContent = `${galleryIdx+1}/${galleryImgs.length}`;
+    lbPrev.style.visibility = galleryImgs.length > 1 ? "visible" : "hidden";
+    lbNext.style.visibility = galleryImgs.length > 1 ? "visible" : "hidden";
+  }
+
+  function prevImg(){
+    if(!galleryImgs.length) return;
+    galleryIdx = (galleryIdx - 1 + galleryImgs.length) % galleryImgs.length;
+    renderLightbox();
+  }
+
+  function nextImg(){
+    if(!galleryImgs.length) return;
+    galleryIdx = (galleryIdx + 1) % galleryImgs.length;
+    renderLightbox();
+  }
+
+  lbClose.addEventListener("click", closeLightbox);
+  lbPrev.addEventListener("click", prevImg);
+  lbNext.addEventListener("click", nextImg);
+
+  lightbox.addEventListener("click", (e) => {
+    const keep = (e.target === lbImg) || e.target.closest(".lbNav") || e.target.closest(".lbTop");
+    if(!keep) closeLightbox();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if(!lightbox.classList.contains("show")) return;
+    if(e.key === "Escape") closeLightbox();
+    if(e.key === "ArrowLeft") prevImg();
+    if(e.key === "ArrowRight") nextImg();
+  });
+
+  let startX = null;
+  lbStage.addEventListener("touchstart", (e) => {
+    if(!lightbox.classList.contains("show")) return;
+    startX = e.touches[0].clientX;
+  }, {passive:true});
+
+  lbStage.addEventListener("touchend", (e) => {
+    if(startX === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const dx = endX - startX;
+    startX = null;
+    if(Math.abs(dx) < 40) return;
+    if(dx > 0) prevImg();
+    else nextImg();
+  }, {passive:true});
+
+  /* ================== DETALLE ================== */
+  let selectedId = null;
+
+  function openDetail(id){
+    selectedId = id;
+    const o = objetivos.find(x => x.id === id);
+    if(!o) return;
+
+    $("#detailHero").style.backgroundImage = `url('${firstImg(o)}')`;
+
+    $("#detailTitle").textContent = o.titulo;
+    const place = o.place ? ` · ${o.place}` : "";
+    $("#detailSub").textContent = `${o.cat} · ${o.done ? "Cumplido" : "Pendiente"}${place}`;
+
+    $("#chipCat").textContent = o.cat;
+    $("#chipState").textContent = o.done ? "Cumplido" : "Pendiente";
+    $("#chipCost").textContent = eur(o.coste);
+    $("#detailPrice").textContent = eur(o.coste);
+
+    $("#detailDesc").textContent = o.desc || "Añada una descripción en Ajustes.";
+    $("#toggleDoneTop").textContent = o.done ? "♥" : "♡";
+
+    const imgs = (o.imgs && o.imgs.length) ? o.imgs : [];
+    $("#detailThumbs").innerHTML = imgs.slice(0,4).map((src, idx) => `
+      <div class="thumb ${idx===0 ? "" : "dim"}" data-idx="${idx}" style="background-image:url('${src}')"></div>
+    `).join("");
+
+    screenApp.classList.remove("active");
+    screenDetail.classList.add("active");
+  }
+
+  function closeDetail(){
+    screenDetail.classList.remove("active");
+    screenApp.classList.add("active");
+  }
+
+  function toggleDone(){
+    const o = objetivos.find(x => x.id === selectedId);
+    if(!o) return;
+    o.done = !o.done;
+    saveObjetivos();
+
+    const place = o.place ? ` · ${o.place}` : "";
+    $("#chipState").textContent = o.done ? "Cumplido" : "Pendiente";
+    $("#detailSub").textContent = `${o.cat} · ${o.done ? "Cumplido" : "Pendiente"}${place}`;
+    $("#toggleDoneTop").textContent = o.done ? "♥" : "♡";
+
+    renderHome(currentCat);
+    if(viewProfile.style.display !== "none") renderProfile();
+    if(map) renderMapMarkers();
+  }
+
+  $("#backBtn").addEventListener("click", closeDetail);
+  $("#toggleDoneBtn").addEventListener("click", toggleDone);
+  $("#toggleDoneTop").addEventListener("click", toggleDone);
+
+  $("#detailHero").addEventListener("click", () => {
+    const o = objetivos.find(x => x.id === selectedId);
+    if(!o) return;
+    openLightbox(o.imgs || [], 0);
+  });
+
+  $("#detailThumbs").addEventListener("click", (e) => {
+    const t = e.target.closest(".thumb");
+    if(!t) return;
+    const idx = Number(t.dataset.idx);
+    const o = objetivos.find(x => x.id === selectedId);
+    if(!o) return;
+    openLightbox(o.imgs || [], idx);
+  });
+
+  /* ================== MAPA ================== */
+  let map = null;
+  let markersLayer = null;
+
+  function initMapIfNeeded(){
+    if(map) return;
+    map = L.map("map", { zoomControl: true }).setView([20, 0], 2);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    markersLayer = L.layerGroup().addTo(map);
+  }
+
+  function renderMapMarkers(){
+    if(!map || !markersLayer) return;
+    markersLayer.clearLayers();
+
+    const points = [];
+
+    objetivos.forEach(o => {
+      const lat = (typeof o.lat === "number") ? o.lat : (o.lat === "" ? null : Number(o.lat));
+      const lng = (typeof o.lng === "number") ? o.lng : (o.lng === "" ? null : Number(o.lng));
+      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      points.push([lat, lng]);
+      const marker = L.marker([lat, lng]).addTo(markersLayer);
+
+      const place = o.place ? `<div style="opacity:.75;font-size:12px;margin-top:4px">${escapeHTML(o.place)}</div>` : "";
+      const status = o.done ? "Cumplido" : "Pendiente";
+
+      marker.bindPopup(`
+        <div style="display:flex;gap:10px;align-items:center;min-width:220px">
+          <div style="width:46px;height:46px;border-radius:12px;background:#ddd center/cover no-repeat;flex:0 0 auto;background-image:url('${firstImg(o)}')"></div>
+          <div style="min-width:0">
+            <div style="font-weight:900;line-height:1.15">${escapeHTML(o.titulo)}</div>
+            <div style="opacity:.75;font-size:12px;margin-top:4px">${escapeHTML(o.cat)} · ${escapeHTML(status)}</div>
+            ${place}
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;justify-content:flex-end">
+          <button data-open-id="${o.id}"
+            style="border:none;padding:10px 12px;border-radius:12px;background:#0b1022;color:#fff;font-weight:900;cursor:pointer">
+            Ver detalle →
+          </button>
+        </div>
+      `);
     });
 
-    return { photos: photos, hasKey: true };
-  }catch(err){
-    console.warn("Pexels fetch error:", err);
-    return { photos: getFallbackImages(query), hasKey: false };
+    if(points.length){
+      map.fitBounds(L.latLngBounds(points), { padding: [30, 30] });
+    }else{
+      map.setView([20,0], 2);
+    }
   }
-}
 
-function getFallbackImages(query){
-  // Fallback con seeds fijos para que sean consistentes
-  var topics = ["travel","nature","landscape","adventure","sky"];
-  return [0,1,2].map(function(i){
-    var topic = topics[i % topics.length];
-    return {
-      url: "https://picsum.photos/seed/" + encodeURIComponent(query + i) + "/800/500",
-      thumb: "https://picsum.photos/seed/" + encodeURIComponent(query + i) + "/400/250",
-      photographer: "Lorem Picsum",
-      photographerUrl: "https://picsum.photos"
-    };
-  });
-}
-
-/* ================== STORAGE ================== */
-var STORAGE_KEY = "lalista_objetivos_v6_clean";
-
-function loadObjetivos(){
-  try{
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return [];
-    var data = JSON.parse(raw);
-    if(!Array.isArray(data)) return [];
-    return data;
-  }catch(e){
-    return [];
-  }
-}
-
-function saveObjetivos(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(objetivos));
-}
-
-var objetivos = loadObjetivos();
-
-/* ================== HELPERS ================== */
-var $ = function(q){ return document.querySelector(q); };
-var $$ = function(q){ return document.querySelectorAll(q); };
-
-function eur(n){
-  return (Math.round((Number(n)||0) * 100) / 100).toLocaleString("es-ES") + "€";
-}
-
-function escapeHTML(str){
-  return String(str).replace(/[&<>"']/g, function(s){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[s];
-  });
-}
-
-function firstImg(o){
-  return (o.imgs && o.imgs.length) ? o.imgs[0] : "";
-}
-
-/* ================== SCREENS ================== */
-var screenOnboarding = $("#screen-onboarding");
-var screenApp = $("#screen-app");
-var screenDetail = $("#screen-detail");
-var pageTitle = $("#pageTitle");
-var homeHeader = $("#homeHeader");
-var viewHome = $("#view-home");
-var viewCompass = $("#view-compass");
-var viewProfile = $("#view-profile");
-
-function showOnly(view){
-  viewHome.style.display = (view === "home") ? "block" : "none";
-  viewCompass.style.display = (view === "compass") ? "block" : "none";
-  viewProfile.style.display = (view === "profile") ? "block" : "none";
-}
-
-function setNavActive(which){
-  $$(".navBtn").forEach(function(b){ b.classList.remove("active"); });
-  var btn = document.querySelector('.navBtn[data-nav="' + which + '"]');
-  if(btn) btn.classList.add("active");
-}
-
-function showView(which){
-  setNavActive(which);
-  if(which === "home"){
-    pageTitle.textContent = "Mis objetivos";
-    homeHeader.style.display = "block";
-    showOnly("home");
-    return;
-  }
-  if(which === "compass"){
-    pageTitle.textContent = "Mapa";
-    homeHeader.style.display = "none";
-    showOnly("compass");
-    initMapIfNeeded();
-    setTimeout(function(){
-      if(map){ map.invalidateSize(); renderMapMarkers(); }
-    }, 60);
-    return;
-  }
-  if(which === "profile"){
-    pageTitle.textContent = "Perfil";
-    homeHeader.style.display = "none";
-    showOnly("profile");
-    renderProfile();
-    return;
-  }
-}
-
-$$(".navBtn").forEach(function(btn){
-  btn.addEventListener("click", function(){ showView(btn.dataset.nav); });
-});
-
-/* ================== HOME ================== */
-var carousel = $("#carousel");
-var currentCat = "Todos";
-
-function renderHome(cat){
-  cat = cat || "Todos";
-  currentCat = cat;
-  var list = objetivos.filter(function(o){ return cat === "Todos" || o.cat === cat; });
-
-  carousel.innerHTML = list.map(function(o){
-    return '<article class="objCard ' + (o.done ? "done" : "") + '" data-id="' + o.id + '">'
-      + '<div class="objImg" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
-      + '<div class="objBody">'
-      + '<div>'
-      + '<div class="objTitle">' + escapeHTML(o.titulo) + '</div>'
-      + '<div class="objMeta">' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.place ? " · " + escapeHTML(o.place) : "") + '</div>'
-      + '</div>'
-      + '<div class="badge ' + (o.done ? "done" : "") + '">' + (o.done ? "Cumplido" : o.cat) + '</div>'
-      + '</div>'
-      + '</article>';
-  }).join("");
-
-  carousel.scrollTo({left:0, behavior:"auto"});
-}
-
-$$(".tab").forEach(function(t){
-  t.addEventListener("click", function(){
-    $$(".tab").forEach(function(x){ x.classList.remove("active"); });
-    t.classList.add("active");
-    renderHome(t.dataset.cat);
-  });
-});
-
-carousel.addEventListener("click", function(e){
-  var card = e.target.closest(".objCard");
-  if(!card) return;
-  openDetail(Number(card.dataset.id));
-});
-
-/* ================== PROFILE ================== */
-function renderProfile(){
-  var pend = objetivos.filter(function(o){ return !o.done; });
-  var done = objetivos.filter(function(o){ return o.done; });
-  var costTotal = objetivos.reduce(function(a,o){ return a+(Number(o.coste)||0); }, 0);
-  var costPend = pend.reduce(function(a,o){ return a+(Number(o.coste)||0); }, 0);
-  var costDone = done.reduce(function(a,o){ return a+(Number(o.coste)||0); }, 0);
-
-  $("#kpiPend").textContent = pend.length;
-  $("#kpiDone").textContent = done.length;
-  $("#kpiCostTotal").textContent = eur(costTotal);
-  $("#kpiCostPend").textContent = eur(costPend);
-
-  $("#listPend").innerHTML = pend.length
-    ? pend.map(function(o){
-        return '<div class="rowItem"><div class="rowLeft"><strong>' + escapeHTML(o.titulo) + '</strong><small>' + escapeHTML(o.cat) + (o.place ? " · " + escapeHTML(o.place) : "") + '</small></div><div class="cost">' + eur(o.coste||0) + '</div></div>';
-      }).join("")
-    : '<div class="rowItem"><div class="rowLeft"><strong>Todo hecho 😮‍💨</strong><small>No hay pendientes.</small></div><div class="cost">0€</div></div>';
-
-  $("#listDone").innerHTML = done.length
-    ? done.map(function(o){
-        return '<div class="rowItem"><div class="rowLeft"><strong>' + escapeHTML(o.titulo) + '</strong><small>' + escapeHTML(o.cat) + (o.place ? " · " + escapeHTML(o.place) : "") + '</small></div><div class="cost">' + eur(o.coste||0) + '</div></div>';
-      }).join("")
-    : '<div class="rowItem"><div class="rowLeft"><strong>Aún ninguno cumplido</strong><small>Se empieza por uno.</small></div><div class="cost">' + eur(costDone) + '</div></div>';
-}
-
-/* ================== LIGHTBOX ================== */
-var lightbox = $("#lightbox");
-var lbImg = $("#lbImg");
-var lbCounter = $("#lbCounter");
-var lbClose = $("#lbClose");
-var lbPrev = $("#lbPrev");
-var lbNext = $("#lbNext");
-var lbStage = $("#lbStage");
-var galleryImgs = [];
-var galleryIdx = 0;
-
-function openLightbox(imgs, startIndex){
-  startIndex = startIndex || 0;
-  galleryImgs = Array.isArray(imgs) ? imgs.filter(Boolean) : [];
-  if(!galleryImgs.length) return;
-  galleryIdx = Math.max(0, Math.min(startIndex, galleryImgs.length-1));
-  renderLightbox();
-  lightbox.classList.add("show");
-}
-function closeLightbox(){ lightbox.classList.remove("show"); }
-function renderLightbox(){
-  lbImg.src = galleryImgs[galleryIdx];
-  lbCounter.textContent = (galleryIdx+1) + "/" + galleryImgs.length;
-  lbPrev.style.visibility = galleryImgs.length > 1 ? "visible" : "hidden";
-  lbNext.style.visibility = galleryImgs.length > 1 ? "visible" : "hidden";
-}
-function prevImg(){
-  if(!galleryImgs.length) return;
-  galleryIdx = (galleryIdx - 1 + galleryImgs.length) % galleryImgs.length;
-  renderLightbox();
-}
-function nextImg(){
-  if(!galleryImgs.length) return;
-  galleryIdx = (galleryIdx + 1) % galleryImgs.length;
-  renderLightbox();
-}
-
-lbClose.addEventListener("click", closeLightbox);
-lbPrev.addEventListener("click", prevImg);
-lbNext.addEventListener("click", nextImg);
-lightbox.addEventListener("click", function(e){
-  var keep = (e.target === lbImg) || e.target.closest(".lbNav") || e.target.closest(".lbTop");
-  if(!keep) closeLightbox();
-});
-window.addEventListener("keydown", function(e){
-  if(!lightbox.classList.contains("show")) return;
-  if(e.key === "Escape") closeLightbox();
-  if(e.key === "ArrowLeft") prevImg();
-  if(e.key === "ArrowRight") nextImg();
-});
-
-var lbStartX = null;
-lbStage.addEventListener("touchstart", function(e){
-  if(!lightbox.classList.contains("show")) return;
-  lbStartX = e.touches[0].clientX;
-}, {passive:true});
-lbStage.addEventListener("touchend", function(e){
-  if(lbStartX === null) return;
-  var dx = e.changedTouches[0].clientX - lbStartX;
-  lbStartX = null;
-  if(Math.abs(dx) < 40) return;
-  if(dx > 0) prevImg(); else nextImg();
-}, {passive:true});
-
-/* ================== DETALLE ================== */
-var selectedId = null;
-
-function openDetail(id){
-  selectedId = id;
-  var o = objetivos.find(function(x){ return x.id === id; });
-  if(!o) return;
-
-  $("#detailHero").style.backgroundImage = "url('" + firstImg(o) + "')";
-  $("#detailTitle").textContent = o.titulo;
-  var place = o.place ? " · " + o.place : "";
-  $("#detailSub").textContent = o.cat + " · " + (o.done ? "Cumplido" : "Pendiente") + place;
-  $("#chipCat").textContent = o.cat;
-  $("#chipState").textContent = o.done ? "Cumplido" : "Pendiente";
-  $("#chipCost").textContent = eur(o.coste);
-  $("#detailPrice").textContent = eur(o.coste);
-  $("#detailDesc").textContent = o.desc || "Añada una descripción en Ajustes.";
-  $("#toggleDoneTop").textContent = o.done ? "♥" : "♡";
-
-  var imgs = (o.imgs && o.imgs.length) ? o.imgs : [];
-  $("#detailThumbs").innerHTML = imgs.slice(0,4).map(function(src, idx){
-    return '<div class="thumb ' + (idx===0 ? "" : "dim") + '" data-idx="' + idx + '" style="background-image:url(\'' + src + '\')"></div>';
-  }).join("");
-
-  screenApp.classList.remove("active");
-  screenDetail.classList.add("active");
-}
-
-function closeDetail(){
-  screenDetail.classList.remove("active");
-  screenApp.classList.add("active");
-}
-
-function toggleDone(){
-  var o = objetivos.find(function(x){ return x.id === selectedId; });
-  if(!o) return;
-  o.done = !o.done;
-  saveObjetivos();
-  var place = o.place ? " · " + o.place : "";
-  $("#chipState").textContent = o.done ? "Cumplido" : "Pendiente";
-  $("#detailSub").textContent = o.cat + " · " + (o.done ? "Cumplido" : "Pendiente") + place;
-  $("#toggleDoneTop").textContent = o.done ? "♥" : "♡";
-  renderHome(currentCat);
-  if(viewProfile.style.display !== "none") renderProfile();
-  if(map) renderMapMarkers();
-}
-
-$("#backBtn").addEventListener("click", closeDetail);
-$("#toggleDoneBtn").addEventListener("click", toggleDone);
-$("#toggleDoneTop").addEventListener("click", toggleDone);
-$("#detailHero").addEventListener("click", function(){
-  var o = objetivos.find(function(x){ return x.id === selectedId; });
-  if(!o) return;
-  openLightbox(o.imgs || [], 0);
-});
-$("#detailThumbs").addEventListener("click", function(e){
-  var t = e.target.closest(".thumb");
-  if(!t) return;
-  var o = objetivos.find(function(x){ return x.id === selectedId; });
-  if(!o) return;
-  openLightbox(o.imgs || [], Number(t.dataset.idx));
-});
-
-/* ================== MAPA ================== */
-var map = null;
-var markersLayer = null;
-
-function initMapIfNeeded(){
-  if(map) return;
-  map = L.map("map", {zoomControl:true}).setView([20,0],2);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom:19, attribution:"&copy; OpenStreetMap"
-  }).addTo(map);
-  markersLayer = L.layerGroup().addTo(map);
-}
-
-function renderMapMarkers(){
-  if(!map || !markersLayer) return;
-  markersLayer.clearLayers();
-  var points = [];
-
-  objetivos.forEach(function(o){
-    var lat = typeof o.lat === "number" ? o.lat : (o.lat === "" ? null : Number(o.lat));
-    var lng = typeof o.lng === "number" ? o.lng : (o.lng === "" ? null : Number(o.lng));
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    points.push([lat,lng]);
-    var marker = L.marker([lat,lng]).addTo(markersLayer);
-    var placeHtml = o.place ? '<div style="opacity:.75;font-size:12px;margin-top:4px">' + escapeHTML(o.place) + '</div>' : "";
-    var status = o.done ? "Cumplido" : "Pendiente";
-
-    marker.bindPopup(
-      '<div style="display:flex;gap:10px;align-items:center;min-width:220px">'
-      + '<div style="width:46px;height:46px;border-radius:12px;background:#ddd center/cover no-repeat;flex:0 0 auto;background-image:url(\'' + firstImg(o) + '\')"></div>'
-      + '<div style="min-width:0"><div style="font-weight:900;line-height:1.15">' + escapeHTML(o.titulo) + '</div>'
-      + '<div style="opacity:.75;font-size:12px;margin-top:4px">' + escapeHTML(o.cat) + ' · ' + escapeHTML(status) + '</div>'
-      + placeHtml + '</div></div>'
-      + '<div style="margin-top:10px;display:flex;justify-content:flex-end">'
-      + '<button data-open-id="' + o.id + '" style="border:none;padding:10px 12px;border-radius:12px;background:#0b1022;color:#fff;font-weight:900;cursor:pointer">Ver detalle →</button>'
-      + '</div>'
-    );
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-open-id]");
+    if(!btn) return;
+    const id = Number(btn.dataset.openId);
+    if(!Number.isFinite(id)) return;
+    if(map) map.closePopup();
+    openDetail(id);
   });
 
-  if(points.length){
-    map.fitBounds(L.latLngBounds(points), {padding:[30,30]});
-  }else{
-    map.setView([20,0],2);
-  }
-}
+  /* ================== AJUSTES (CRUD + fotos locales) ================== */
+  const settingsBack = $("#settingsBack");
+  const settingsClose = $("#settingsClose");
+  const btnCloseList = $("#btnCloseList");
+  const btnAdd = $("#btnAdd");
 
-document.addEventListener("click", function(e){
-  var btn = e.target.closest("[data-open-id]");
-  if(!btn) return;
-  var id = Number(btn.dataset.openId);
-  if(!Number.isFinite(id)) return;
-  if(map) map.closePopup();
-  openDetail(id);
-});
+  const settingsListView = $("#settingsListView");
+  const settingsFormView = $("#settingsFormView");
+  const settingsList = $("#settingsList");
 
-/* ================== AJUSTES (CRUD) ================== */
-var settingsBack = $("#settingsBack");
-var settingsClose = $("#settingsClose");
-var btnCloseList = $("#btnCloseList");
-var btnAdd = $("#btnAdd");
-var settingsListView = $("#settingsListView");
-var settingsFormView = $("#settingsFormView");
-var settingsList = $("#settingsList");
-var settingsActionsList = $("#settingsActionsList");
-var settingsActionsForm = $("#settingsActionsForm");
-var btnBackToList = $("#btnBackToList");
-var btnSave = $("#btnSave");
-var btnDelete = $("#btnDelete");
-var formModeNote = $("#formModeNote");
-var fTitle = $("#fTitle");
-var fCat = $("#fCat");
-var fCost = $("#fCost");
-var fDone = $("#fDone");
-var fDesc = $("#fDesc");
-var fImg0 = $("#fImg0");
-var fImg1 = $("#fImg1");
-var fImg2 = $("#fImg2");
-var fImg3 = $("#fImg3");
-var fPlace = $("#fPlace");
-var fLat = $("#fLat");
-var fLng = $("#fLng");
-var pickLocalBtn = $("#pickLocalBtn");
-var localFiles = $("#localFiles");
-var localCount = $("#localCount");
-var editingId = null;
-var pendingLocalImgs = [];
+  const settingsActionsList = $("#settingsActionsList");
+  const settingsActionsForm = $("#settingsActionsForm");
 
-function openSettings(){
-  editingId = null;
-  pendingLocalImgs = [];
-  updateLocalCount();
-  showSettingsList();
-  settingsBack.classList.add("show");
-}
-function closeSettings(){ settingsBack.classList.remove("show"); }
+  const btnBackToList = $("#btnBackToList");
+  const btnSave = $("#btnSave");
+  const btnDelete = $("#btnDelete");
 
-$("#gearBtn").addEventListener("click", openSettings);
-settingsClose.addEventListener("click", closeSettings);
-btnCloseList.addEventListener("click", closeSettings);
-settingsBack.addEventListener("click", function(e){ if(e.target===settingsBack) closeSettings(); });
+  const formModeNote = $("#formModeNote");
 
-function showSettingsList(){
-  settingsListView.style.display = "block";
-  settingsFormView.style.display = "none";
-  settingsActionsList.style.display = "flex";
-  settingsActionsForm.style.display = "none";
+  const fTitle = $("#fTitle");
+  const fCat = $("#fCat");
+  const fCost = $("#fCost");
+  const fDone = $("#fDone");
+  const fDesc = $("#fDesc");
+  const fImg0 = $("#fImg0");
+  const fImg1 = $("#fImg1");
+  const fImg2 = $("#fImg2");
+  const fImg3 = $("#fImg3");
+  const fPlace = $("#fPlace");
+  const fLat = $("#fLat");
+  const fLng = $("#fLng");
 
-  settingsList.innerHTML = objetivos
-    .slice()
-    .sort(function(a,b){ return a.done===b.done ? a.id-b.id : (a.done ? 1 : -1); })
-    .map(function(o){
-      return '<div class="miniItem ' + (o.done ? "done" : "") + '" data-id="' + o.id + '">'
-        + '<div class="miniImg" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
-        + '<div class="miniText"><b>' + escapeHTML(o.titulo) + '</b>'
-        + '<span>' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.place ? " · " + escapeHTML(o.place) : "") + '</span></div>'
-        + '<div class="tag ' + (o.done ? "done" : "") + '">' + (o.done ? "Cumplido" : "Pendiente") + '</div>'
-        + '</div>';
-    }).join("") || '<div class="smallNote">No hay objetivos. Añada el primero.</div>';
-}
+  const pickLocalBtn = $("#pickLocalBtn");
+  const localFiles = $("#localFiles");
+  const localCount = $("#localCount");
 
-function showSettingsForm(mode){
-  settingsListView.style.display = "none";
-  settingsFormView.style.display = "block";
-  settingsActionsList.style.display = "none";
-  settingsActionsForm.style.display = "flex";
-  formModeNote.textContent = mode === "new" ? "Nuevo objetivo" : "Editar objetivo";
-}
+  let editingId = null;
+  let pendingLocalImgs = [];
 
-function fillForm(o){
-  fTitle.value = o ? (o.titulo || "") : "";
-  fCat.value = o ? (o.cat || "Viajes") : "Viajes";
-  fCost.value = o ? (o.coste || 0) : 0;
-  fDone.checked = o ? !!o.done : false;
-  fDesc.value = o ? (o.desc || "") : "";
-  var imgs = (o && o.imgs && o.imgs.length) ? o.imgs : ["","","",""];
-  fImg0.value = imgs[0] && imgs[0].startsWith("data:") ? "" : (imgs[0] || "");
-  fImg1.value = imgs[1] && imgs[1].startsWith("data:") ? "" : (imgs[1] || "");
-  fImg2.value = imgs[2] && imgs[2].startsWith("data:") ? "" : (imgs[2] || "");
-  fImg3.value = imgs[3] && imgs[3].startsWith("data:") ? "" : (imgs[3] || "");
-  fPlace.value = o ? (o.place || "") : "";
-  fLat.value = o ? (o.lat != null ? o.lat : "") : "";
-  fLng.value = o ? (o.lng != null ? o.lng : "") : "";
-  pendingLocalImgs = [];
-  updateLocalCount();
-  localFiles.value = "";
-}
-
-function updateLocalCount(){
-  localCount.textContent = pendingLocalImgs.length + " seleccionadas";
-}
-
-function readFormUrls(){
-  return [fImg0.value, fImg1.value, fImg2.value, fImg3.value]
-    .map(function(s){ return (s||"").trim(); })
-    .filter(Boolean);
-}
-
-function readForm(){
-  var titulo = fTitle.value.trim();
-  var cat = fCat.value;
-  var coste = Number(fCost.value || 0);
-  var done = !!fDone.checked;
-  var desc = fDesc.value.trim();
-  var place = fPlace.value.trim();
-  var latRaw = (fLat.value || "").trim();
-  var lngRaw = (fLng.value || "").trim();
-  var lat = latRaw === "" ? null : Number(latRaw);
-  var lng = lngRaw === "" ? null : Number(lngRaw);
-  var urlImgs = readFormUrls();
-  return {titulo:titulo, cat:cat, coste:coste, done:done, desc:desc, place:place, lat:lat, lng:lng, urlImgs:urlImgs};
-}
-
-async function filesToDataUrls(files){
-  var arr = Array.from(files || []);
-  var results = [];
-  for(var i=0; i<arr.length; i++){
-    var file = arr[i];
-    if(!file.type.startsWith("image/")) continue;
-    var dataUrl = await new Promise(function(resolve, reject){
-      var r = new FileReader();
-      r.onload = function(){ resolve(r.result); };
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
-    results.push(dataUrl);
-  }
-  return results;
-}
-
-pickLocalBtn.addEventListener("click", function(){ localFiles.click(); });
-localFiles.addEventListener("change", async function(){
-  if(!localFiles.files || !localFiles.files.length) return;
-  try{
-    var dataUrls = await filesToDataUrls(localFiles.files);
-    pendingLocalImgs.push.apply(pendingLocalImgs, dataUrls);
+  function openSettings(){
+    editingId = null;
+    pendingLocalImgs = [];
     updateLocalCount();
-  }catch(e){
-    alert("No se han podido cargar una o más fotos.");
-  }finally{
+    showSettingsList();
+    settingsBack.classList.add("show");
+  }
+
+  function closeSettings(){
+    settingsBack.classList.remove("show");
+  }
+
+  $("#gearBtn").addEventListener("click", openSettings);
+  settingsClose.addEventListener("click", closeSettings);
+  btnCloseList.addEventListener("click", closeSettings);
+  settingsBack.addEventListener("click", (e)=>{ if(e.target===settingsBack) closeSettings(); });
+
+  function showSettingsList(){
+    settingsListView.style.display = "block";
+    settingsFormView.style.display = "none";
+    settingsActionsList.style.display = "flex";
+    settingsActionsForm.style.display = "none";
+
+    settingsList.innerHTML = objetivos
+      .slice()
+      .sort((a,b)=> (a.done===b.done ? a.id-b.id : (a.done ? 1 : -1)))
+      .map(o => `
+        <div class="miniItem ${o.done ? "done" : ""}" data-id="${o.id}">
+          <div class="miniImg" style="background-image:url('${firstImg(o)}')"></div>
+          <div class="miniText">
+            <b>${escapeHTML(o.titulo)}</b>
+            <span>${escapeHTML(o.cat)} · ${eur(o.coste)}${o.place ? " · " + escapeHTML(o.place) : ""}</span>
+          </div>
+          <div class="tag ${o.done ? "done" : ""}">${o.done ? "Cumplido" : "Pendiente"}</div>
+        </div>
+      `).join("") || `<div class="smallNote">No hay objetivos. Añada el primero.</div>`;
+  }
+
+  function showSettingsForm(mode){
+    settingsListView.style.display = "none";
+    settingsFormView.style.display = "block";
+    settingsActionsList.style.display = "none";
+    settingsActionsForm.style.display = "flex";
+    formModeNote.textContent = mode === "new" ? "Nuevo objetivo" : "Editar objetivo";
+  }
+
+  function fillForm(o){
+    fTitle.value = o?.titulo ?? "";
+    fCat.value = o?.cat ?? "Viajes";
+    fCost.value = (o?.coste ?? 0);
+    fDone.checked = !!o?.done;
+    fDesc.value = o?.desc ?? "";
+
+    const imgs = (o?.imgs && o.imgs.length) ? o.imgs : ["","","",""];
+    fImg0.value = imgs[0]?.startsWith("data:") ? "" : (imgs[0] ?? "");
+    fImg1.value = imgs[1]?.startsWith("data:") ? "" : (imgs[1] ?? "");
+    fImg2.value = imgs[2]?.startsWith("data:") ? "" : (imgs[2] ?? "");
+    fImg3.value = imgs[3]?.startsWith("data:") ? "" : (imgs[3] ?? "");
+
+    fPlace.value = o?.place ?? "";
+    fLat.value = (o?.lat ?? "");
+    fLng.value = (o?.lng ?? "");
+
+    pendingLocalImgs = [];
+    updateLocalCount();
     localFiles.value = "";
   }
-});
 
-btnAdd.addEventListener("click", function(){
-  editingId = null;
-  fillForm(null);
-  showSettingsForm("new");
-  btnDelete.style.display = "none";
-});
-
-settingsList.addEventListener("click", function(e){
-  var item = e.target.closest(".miniItem");
-  if(!item) return;
-  var id = Number(item.dataset.id);
-  var o = objetivos.find(function(x){ return x.id === id; });
-  if(!o) return;
-  editingId = id;
-  fillForm(o);
-  showSettingsForm("edit");
-  btnDelete.style.display = "block";
-});
-
-btnBackToList.addEventListener("click", function(){
-  editingId = null;
-  pendingLocalImgs = [];
-  updateLocalCount();
-  showSettingsList();
-});
-
-function refreshEverywhere(){
-  saveObjetivos();
-  renderHome(currentCat);
-  if(viewProfile.style.display !== "none") renderProfile();
-  if(map) renderMapMarkers();
-  if(selectedId && screenDetail.classList.contains("active")){
-    var exists = objetivos.some(function(o){ return o.id === selectedId; });
-    if(exists) openDetail(selectedId);
-  }
-}
-
-btnSave.addEventListener("click", function(){
-  var data = readForm();
-  if(!data.titulo){ alert("Ponga un título, por favor 🙂"); return; }
-  if((data.lat !== null && !Number.isFinite(data.lat)) || (data.lng !== null && !Number.isFinite(data.lng))){
-    alert("Lat/Lng deben ser números válidos (o déjelos vacíos)."); return;
+  function updateLocalCount(){
+    localCount.textContent = `${pendingLocalImgs.length} seleccionadas`;
   }
 
-  var finalImgs = [];
-  if(pendingLocalImgs.length) finalImgs.push(pendingLocalImgs[0]);
-  finalImgs.push.apply(finalImgs, data.urlImgs);
-
-  if(editingId != null){
-    var prev = objetivos.find(function(o){ return o.id === editingId; });
-    var keepLocal = (prev && prev.imgs ? prev.imgs : []).filter(function(src){ return typeof src === "string" && src.startsWith("data:"); });
-    finalImgs.push.apply(finalImgs, keepLocal);
+  function readFormUrls(){
+    return [fImg0.value, fImg1.value, fImg2.value, fImg3.value]
+      .map(s => (s||"").trim())
+      .filter(Boolean);
   }
 
-  if(pendingLocalImgs.length > 1) finalImgs.push.apply(finalImgs, pendingLocalImgs.slice(1));
+  function readForm(){
+    const titulo = fTitle.value.trim();
+    const cat = fCat.value;
+    const coste = Number(fCost.value || 0);
+    const done = !!fDone.checked;
+    const desc = fDesc.value.trim();
 
-  finalImgs = Array.from(new Set(finalImgs)).filter(Boolean);
+    const place = fPlace.value.trim();
+    const latRaw = (fLat.value || "").trim();
+    const lngRaw = (fLng.value || "").trim();
+    const lat = latRaw === "" ? null : Number(latRaw);
+    const lng = lngRaw === "" ? null : Number(lngRaw);
 
-  if(!finalImgs.length){ alert("Añada al menos una imagen (URL o foto del móvil)."); return; }
+    const urlImgs = readFormUrls();
 
-  if(editingId == null){
-    var nextId = objetivos.reduce(function(m,o){ return Math.max(m, Number(o.id)||0); }, 0) + 1;
-    objetivos.unshift({id:nextId, titulo:data.titulo, cat:data.cat, coste:data.coste, done:data.done, desc:data.desc, imgs:finalImgs, place:data.place, lat:data.lat, lng:data.lng});
-  }else{
-    var idx = objetivos.findIndex(function(x){ return x.id === editingId; });
-    if(idx >= 0){
-      objetivos[idx] = Object.assign({}, objetivos[idx], {titulo:data.titulo, cat:data.cat, coste:data.coste, done:data.done, desc:data.desc, imgs:finalImgs, place:data.place, lat:data.lat, lng:data.lng});
+    return { titulo, cat, coste, done, desc, place, lat, lng, urlImgs };
+  }
+
+  async function filesToDataUrls(files){
+    const arr = Array.from(files || []);
+    const results = [];
+    for(const file of arr){
+      if(!file.type.startsWith("image/")) continue;
+      const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      results.push(dataUrl);
+    }
+    return results;
+  }
+
+  pickLocalBtn.addEventListener("click", () => localFiles.click());
+
+  localFiles.addEventListener("change", async () => {
+    if(!localFiles.files || !localFiles.files.length) return;
+    try{
+      const dataUrls = await filesToDataUrls(localFiles.files);
+      pendingLocalImgs.push(...dataUrls);
+      updateLocalCount();
+    }catch{
+      alert("No se han podido cargar una o más fotos.");
+    }finally{
+      localFiles.value = "";
+    }
+  });
+
+  btnAdd.addEventListener("click", () => {
+    editingId = null;
+    fillForm(null);
+    showSettingsForm("new");
+    btnDelete.style.display = "none";
+  });
+
+  settingsList.addEventListener("click", (e) => {
+    const item = e.target.closest(".miniItem");
+    if(!item) return;
+    const id = Number(item.dataset.id);
+    const o = objetivos.find(x => x.id === id);
+    if(!o) return;
+
+    editingId = id;
+    fillForm(o);
+    showSettingsForm("edit");
+    btnDelete.style.display = "block";
+  });
+
+  btnBackToList.addEventListener("click", () => {
+    editingId = null;
+    pendingLocalImgs = [];
+    updateLocalCount();
+    showSettingsList();
+  });
+
+  function refreshEverywhere(){
+    saveObjetivos();
+    renderHome(currentCat);
+    if(viewProfile.style.display !== "none") renderProfile();
+    if(map) renderMapMarkers();
+
+    if(selectedId && screenDetail.classList.contains("active")){
+      const exists = objetivos.some(o => o.id === selectedId);
+      if(exists) openDetail(selectedId);
     }
   }
 
-  pendingLocalImgs = [];
-  updateLocalCount();
-  refreshEverywhere();
-  showSettingsList();
-});
+  btnSave.addEventListener("click", () => {
+    const data = readForm();
 
-btnDelete.addEventListener("click", function(){
-  if(editingId == null) return;
-  var o = objetivos.find(function(x){ return x.id === editingId; });
-  if(!confirm('¿Borrar "' + (o ? o.titulo : "objetivo") + '"?')) return;
-  objetivos = objetivos.filter(function(x){ return x.id !== editingId; });
-  if(selectedId === editingId && screenDetail.classList.contains("active")) closeDetail();
-  editingId = null;
-  pendingLocalImgs = [];
-  updateLocalCount();
-  refreshEverywhere();
-  showSettingsList();
-});
+    if(!data.titulo){
+      alert("Ponga un título, por favor 🙂");
+      return;
+    }
+    if((data.lat !== null && !Number.isFinite(data.lat)) || (data.lng !== null && !Number.isFinite(data.lng))){
+      alert("Lat/Lng deben ser números válidos (o déjelos vacíos).");
+      return;
+    }
 
-/* ================== IDEAS ================== */
-var ideasBack = $("#ideasBack");
-var ideasList = $("#ideasList");
-var ideasClose = $("#ideasClose");
-var ideasClose2 = $("#ideasClose2");
+    let finalImgs = [];
 
-var ideasCatalogo = {
-  Viajes:[
-    "Torre Eiffel","Museo del Louvre","Mont Saint-Michel","Costa Azul","Provenza",
-    "Coliseo de Roma","Venecia","Torre de Pisa","Costa Amalfitana","Florencia",
-    "Sagrada Familia","Londres y Big Ben","Berlín","Viena","Fiordos noruegos",
-    "Gran Cañón","Times Square","Golden Gate","Las Vegas","Yellowstone",
-    "Chichén Itzá","Machu Picchu","Cristo Redentor","Amazonas","Buenos Aires",
-    "Gran Muralla China","Tokio","Monte Fuji","Kioto (Fushimi Inari)","Shanghái",
-    "Bangkok","Taj Mahal","Burj Khalifa","Islas de Tailandia","Desierto de Dubái",
-    "Pirámides de Giza","Sahara","Marrakech","Safari Serengeti","Cataratas Victoria",
-    "Auroras en Islandia","Patagonia","Gran Barrera de Coral","Volcán activo","Alpes",
-    "Ruta 66","Transiberiano","Himalaya","Iglú de cristal","Avistamiento de ballenas",
-    "Maldivas","Bora Bora","Santorini","Bali","Hawái",
-    "Seychelles","Filipinas","Mauricio","Ibiza","Islas Feroe",
-    "Nueva York en Navidad","Dubái","Singapur","Hong Kong","Estambul",
-    "Praga","Ámsterdam","Budapest","Edimburgo","Chicago",
-    "Globo en Capadocia","Carnaval de Río","Oktoberfest","Año Nuevo en Sídney",
-    "Ruta gastronómica por Japón","Crucero Caribe","Ryokan en Japón","Viaje solo",
-    "5 continentes","50 países antes de los 50","Interrail","Vivir 6 meses fuera",
-    "Mochilero por Sudamérica","Nómada digital","Roadtrip 30 días",
-    "Camino de Santiago","Dormir en el desierto",
-    "7 maravillas modernas","10 Patrimonios UNESCO",
-    "Viaje con padres","Disney con hijos","Viaje sorpresa","Viaje épico de jubilación"
-  ],
-  Familia:[
-    "Tener mi primer hijo/a antes de los 35","Crear tradiciones familiares propias",
-    "Gran viaje familiar cada verano","Diseñar la casa de mis sueños",
-    "Llegar a la vejez rodeado de hijos y nietos","Comidas familiares todos los domingos",
-    "Cita mensual obligatoria con mi pareja","Renovar votos a los 10 años",
-    "Vivir un año en el extranjero en familia","Transmitir recetas familiares",
-    "Álbum físico familiar cada año","Crear fondo familiar de emergencia",
-    "Dejar herencia sólida","Celebrar todos los cumpleaños juntos",
-    "Gran reunión familiar cada 5 años","Cuidar de mis padres cuando lo necesiten",
-    "Viaje individual con cada hijo","Enseñar educación financiera a mis hijos",
-    "Construir negocio familiar","Superar juntos una crisis económica"
-  ],
-  Trabajo:[
-    "Conseguir primer ascenso antes de los 30","Alcanzar puesto directivo antes de los 40",
-    "Liderar equipo de más de 20 personas","Ser referente en mi sector",
-    "Cambiar de sector con éxito","Trabajar en empresa internacional",
-    "Lograr puesto 100% remoto","Negociar aumento del 20%",
-    "Superar 50.000€ anuales antes de los 35","Alcanzar 100.000€ anuales antes de los 45",
-    "Crear negocio propio antes de los 35","Lanzar producto digital rentable",
-    "Automatizar 50% de procesos","Abrir segunda línea de negocio",
-    "Delegar completamente la operativa","Monetizar un hobby",
-    "Construir marca personal sólida","Hablar en evento profesional",
-    "Independencia financiera antes de los 55","Jubilarme antes de la edad legal"
-  ]
-};
+    if(pendingLocalImgs.length){
+      finalImgs.push(pendingLocalImgs[0]);
+    }
+    finalImgs.push(...data.urlImgs);
 
-function openIdeas(cat){
-  cat = cat || "Viajes";
-  $$(".ideaTab").forEach(function(b){ b.classList.remove("active"); });
-  var activeTab = document.querySelector('.ideaTab[data-idea-cat="' + cat + '"]');
-  if(activeTab) activeTab.classList.add("active");
-  renderIdeas(cat);
-  ideasBack.classList.add("show");
-}
-function closeIdeas(){ ideasBack.classList.remove("show"); }
+    if(editingId != null){
+      const prev = objetivos.find(o => o.id === editingId);
+      const keepLocal = (prev?.imgs || []).filter(src => typeof src === "string" && src.startsWith("data:"));
+      finalImgs.push(...keepLocal);
+    }
 
-function renderIdeas(cat){
-  var list = ideasCatalogo[cat] || [];
-  ideasList.innerHTML = list.map(function(t){
-    return '<div class="miniItem">'
-      + '<div class="miniText"><b>' + escapeHTML(t) + '</b><span>' + escapeHTML(cat) + '</span></div>'
-      + '<div class="tag" data-idea-add="1" data-idea-title="' + escapeHTML(t) + '" data-idea-cat="' + escapeHTML(cat) + '">Añadir</div>'
-      + '</div>';
-  }).join("") || '<div class="smallNote">No hay ideas aquí (todavía).</div>';
-}
+    if(pendingLocalImgs.length > 1){
+      finalImgs.push(...pendingLocalImgs.slice(1));
+    }
 
-$("#searchBtn").addEventListener("click", function(){ openIdeas("Viajes"); });
-ideasClose.addEventListener("click", closeIdeas);
-ideasClose2.addEventListener("click", closeIdeas);
-ideasBack.addEventListener("click", function(e){ if(e.target===ideasBack) closeIdeas(); });
+    finalImgs = Array.from(new Set(finalImgs)).filter(Boolean);
 
-$$(".ideaTab").forEach(function(btn){
-  btn.addEventListener("click", function(){
-    $$(".ideaTab").forEach(function(b){ b.classList.remove("active"); });
-    btn.classList.add("active");
-    renderIdeas(btn.dataset.ideaCat);
+    if(!finalImgs.length){
+      alert("Añada al menos una imagen (URL o foto del móvil).");
+      return;
+    }
+
+    if(editingId == null){
+      const nextId = objetivos.reduce((m,o)=>Math.max(m, Number(o.id)||0), 0) + 1;
+      objetivos.unshift({
+        id: nextId,
+        titulo: data.titulo,
+        cat: data.cat,
+        coste: data.coste,
+        done: data.done,
+        desc: data.desc,
+        imgs: finalImgs,
+        place: data.place,
+        lat: data.lat,
+        lng: data.lng
+      });
+    }else{
+      const idx = objetivos.findIndex(x => x.id === editingId);
+      if(idx >= 0){
+        objetivos[idx] = {
+          ...objetivos[idx],
+          titulo: data.titulo,
+          cat: data.cat,
+          coste: data.coste,
+          done: data.done,
+          desc: data.desc,
+          imgs: finalImgs,
+          place: data.place,
+          lat: data.lat,
+          lng: data.lng
+        };
+      }
+    }
+
+    pendingLocalImgs = [];
+    updateLocalCount();
+
+    refreshEverywhere();
+    showSettingsList();
   });
-});
 
-document.addEventListener("click", function(e){
-  var add = e.target.closest("[data-idea-add]");
-  if(!add) return;
-  var title = add.dataset.ideaTitle || "";
-  var cat = add.dataset.ideaCat || "Viajes";
-  closeIdeas();
-  openWizard({titulo: title, cat: cat});
-});
+  btnDelete.addEventListener("click", () => {
+    if(editingId == null) return;
+    const o = objetivos.find(x => x.id === editingId);
+    const ok = confirm(`¿Borrar "${o?.titulo || "objetivo"}"?`);
+    if(!ok) return;
 
-/* ================== WIZARD ================== */
-var wizardBack = $("#wizardBack");
-var wizardClose = $("#wizardClose");
-var wPrev = $("#wPrev");
-var wNext = $("#wNext");
-var wizardDots = $("#wizardDots");
-var wTitle = $("#wTitle");
-var wCat = $("#wCat");
-var wCost = $("#wCost");
-var wDesc = $("#wDesc");
-var wPlace = $("#wPlace");
-var wLat = $("#wLat");
-var wLng = $("#wLng");
-var wImgUrl = $("#wImgUrl");
-var coverGrid = $("#coverGrid");
-var pexelsCredit = $("#pexelsCredit");
-var pexelsApiNotice = $("#pexelsApiNotice");
-var wSearchQuery = $("#wSearchQuery");
-var wSearchBtn = $("#wSearchBtn");
-var wPickLocalBtn = $("#wPickLocalBtn");
-var wLocalFiles = $("#wLocalFiles");
-var wLocalCount = $("#wLocalCount");
+    objetivos = objetivos.filter(x => x.id !== editingId);
 
-var wStep = 0;
-var wLocalImgs = [];
-var wCoverChoice = null;
-var wFetchedImages = [];
+    if(selectedId === editingId && screenDetail.classList.contains("active")){
+      closeDetail();
+    }
 
-function wizardStepEls(){
-  return Array.from($$(".wizardStep"));
-}
+    editingId = null;
+    pendingLocalImgs = [];
+    updateLocalCount();
 
-function setWizardStep(n){
-  var steps = wizardStepEls();
-  wStep = Math.max(0, Math.min(n, steps.length-1));
-  steps.forEach(function(s){ s.classList.remove("active"); });
-  steps[wStep].classList.add("active");
+    refreshEverywhere();
+    showSettingsList();
+  });
 
-  wizardDots.innerHTML = steps.map(function(_,i){
-    return '<div class="dot ' + (i===wStep ? "active" : "") + '"></div>';
-  }).join("");
+  /* ================== IDEAS (NUEVO) ================== */
+  const ideasBack = $("#ideasBack");
+  const ideasList = $("#ideasList");
+  const ideasClose = $("#ideasClose");
+  const ideasClose2 = $("#ideasClose2");
 
-  wPrev.style.visibility = (wStep === 0) ? "hidden" : "visible";
-  wNext.textContent = (wStep === steps.length-1) ? "Crear" : "Siguiente";
+  const ideasCatalogo = {
+    Viajes: [
+      "Torre Eiffel","Museo del Louvre","Mont Saint-Michel","Costa Azul","Provenza",
+      "Coliseo de Roma","Venecia","Torre de Pisa","Costa Amalfitana","Florencia",
+      "Sagrada Familia","Londres y Big Ben","Berlín","Viena","Fiordos noruegos",
+      "Gran Cañón","Times Square","Golden Gate","Las Vegas","Yellowstone",
+      "Chichén Itzá","Machu Picchu","Cristo Redentor","Amazonas","Buenos Aires",
+      "Gran Muralla China","Tokio","Monte Fuji","Kioto (Fushimi Inari)","Shanghái",
+      "Bangkok","Taj Mahal","Burj Khalifa","Islas de Tailandia","Desierto de Dubái",
+      "Pirámides de Giza","Sahara","Marrakech","Safari Serengeti","Cataratas Victoria",
+      "Auroras en Islandia","Patagonia","Gran Barrera de Coral","Volcán activo","Alpes",
+      "Ruta 66","Transiberiano","Himalaya","Iglú de cristal","Avistamiento de ballenas",
+      "Maldivas","Bora Bora","Santorini","Bali","Hawái",
+      "Seychelles","Filipinas","Mauricio","Ibiza","Islas Feroe",
+      "Nueva York en Navidad","Dubái","Singapur","Hong Kong","Estambul",
+      "Praga","Ámsterdam","Budapest","Edimburgo","Chicago",
+      "Globo en Capadocia","Carnaval de Río","Oktoberfest","Año Nuevo en Sídney",
+      "Ruta gastronómica por Japón","Crucero Caribe","Ryokan en Japón","Viaje solo",
+      "5 continentes","50 países antes de los 50","Interrail","Vivir 6 meses fuera",
+      "Mochilero por Sudamérica","Nómada digital","Roadtrip 30 días",
+      "Camino de Santiago","Dormir en el desierto",
+      "7 maravillas modernas","10 Patrimonios UNESCO",
+      "Viaje con padres","Disney con hijos","Viaje sorpresa","Viaje épico de jubilación"
+    ],
 
-  if(wStep === 4){
-    // Al llegar al paso 5, buscar automáticamente con el título
-    var query = (wTitle.value || "").trim();
-    if(query){
-      wSearchQuery.value = query;
-      triggerImageSearch(query);
-    } else {
-      // Mostrar aviso de API key si no está configurada
-      checkApiKeyNotice();
+    Familia: [
+      "Tener mi primer hijo/a antes de los 35",
+      "Crear tradiciones familiares propias",
+      "Gran viaje familiar cada verano",
+      "Diseñar la casa de mis sueños",
+      "Llegar a la vejez rodeado de hijos y nietos",
+      "Comidas familiares todos los domingos",
+      "Cita mensual obligatoria con mi pareja",
+      "Renovar votos a los 10 años",
+      "Vivir un año en el extranjero en familia",
+      "Transmitir recetas familiares",
+      "Álbum físico familiar cada año",
+      "Crear fondo familiar de emergencia",
+      "Dejar herencia sólida",
+      "Celebrar todos los cumpleaños juntos",
+      "Gran reunión familiar cada 5 años",
+      "Cuidar de mis padres cuando lo necesiten",
+      "Viaje individual con cada hijo",
+      "Enseñar educación financiera a mis hijos",
+      "Construir negocio familiar",
+      "Superar juntos una crisis económica"
+    ],
+
+    Trabajo: [
+      "Conseguir primer ascenso antes de los 30",
+      "Alcanzar puesto directivo antes de los 40",
+      "Liderar equipo de más de 20 personas",
+      "Ser referente en mi sector",
+      "Cambiar de sector con éxito",
+      "Trabajar en empresa internacional",
+      "Lograr puesto 100% remoto",
+      "Negociar aumento del 20%",
+      "Superar 50.000€ anuales antes de los 35",
+      "Alcanzar 100.000€ anuales antes de los 45",
+      "Crear negocio propio antes de los 35",
+      "Lanzar producto digital rentable",
+      "Automatizar 50% de procesos",
+      "Abrir segunda línea de negocio",
+      "Delegar completamente la operativa",
+      "Monetizar un hobby",
+      "Construir marca personal sólida",
+      "Hablar en evento profesional",
+      "Independencia financiera antes de los 55",
+      "Jubilarme antes de la edad legal"
+    ]
+  };
+
+  function autoImageForIdea(title, cat){
+    const base = "https://source.unsplash.com/1600x900/?";
+    const keywords = {
+      Viajes: title + ",travel,landscape",
+      Familia: "family,happy,home",
+      Trabajo: "business,success,office,entrepreneur",
+      Experiencias: title + ",experience,adventure"
+    };
+    return base + encodeURIComponent(keywords[cat] || title);
+  }
+
+  function openIdeas(cat="Viajes"){
+    $$(".ideaTab").forEach(b=>b.classList.remove("active"));
+    $(`.ideaTab[data-idea-cat="${cat}"]`)?.classList.add("active");
+    renderIdeas(cat);
+    ideasBack.classList.add("show");
+  }
+
+  function closeIdeas(){ 
+    ideasBack.classList.remove("show"); 
+  }
+
+  function renderIdeas(cat){
+    const list = ideasCatalogo[cat] || [];
+    ideasList.innerHTML = list.map(t => `
+      <div class="miniItem">
+        <div class="miniText">
+          <b>${escapeHTML(t)}</b>
+          <span>${escapeHTML(cat)}</span>
+        </div>
+        <div class="tag" data-idea-add="1" data-idea-title="${escapeHTML(t)}" data-idea-cat="${escapeHTML(cat)}">Añadir</div>
+      </div>
+    `).join("") || `<div class="smallNote">No hay ideas aquí (todavía).</div>`;
+  }
+
+  $("#searchBtn").addEventListener("click", ()=> openIdeas("Viajes"));
+  ideasClose.addEventListener("click", closeIdeas);
+  ideasClose2.addEventListener("click", closeIdeas);
+  ideasBack.addEventListener("click", (e)=>{ if(e.target===ideasBack) closeIdeas(); });
+
+  $$(".ideaTab").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      $$(".ideaTab").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      renderIdeas(btn.dataset.ideaCat);
+    });
+  });
+
+  document.addEventListener("click", (e)=>{
+    const add = e.target.closest("[data-idea-add]");
+    if(!add) return;
+
+    const title = add.dataset.ideaTitle || "";
+    const cat = add.dataset.ideaCat || "Viajes";
+
+    const autoImg = autoImageForIdea(title, cat);
+
+    closeIdeas();
+
+    openWizard({
+      titulo: title,
+      cat: cat
+    });
+
+    setTimeout(()=>{
+      const imgField = document.querySelector("#wImgUrl");
+      if(imgField) imgField.value = autoImg;
+    }, 50);
+  });
+
+  /* ================== WIZARD (NUEVO) ================== */
+  const wizardBack = $("#wizardBack");
+  const wizardClose = $("#wizardClose");
+  const wPrev = $("#wPrev");
+  const wNext = $("#wNext");
+  const wizardDots = $("#wizardDots");
+
+  const wTitle = $("#wTitle");
+  const wCat = $("#wCat");
+  const wCost = $("#wCost");
+  const wDesc = $("#wDesc");
+  const wPlace = $("#wPlace");
+  const wLat = $("#wLat");
+  const wLng = $("#wLng");
+  const wImgUrl = $("#wImgUrl");
+  const coverGrid = $("#coverGrid");
+
+  const wPickLocalBtn = $("#wPickLocalBtn");
+  const wLocalFiles = $("#wLocalFiles");
+  const wLocalCount = $("#wLocalCount");
+
+  let wStep = 0;
+  let wLocalImgs = [];
+  let wCoverChoice = null;
+
+  function wizardSteps(){ 
+    return Array.from($$(".wizardStep")); 
+  }
+
+  function setWizardStep(n){
+    const steps = wizardSteps();
+    wStep = Math.max(0, Math.min(n, steps.length-1));
+    steps.forEach(s => s.classList.remove("active"));
+    steps[wStep].classList.add("active");
+
+    wizardDots.innerHTML = steps.map((_,i)=>`<div class="dot ${i===wStep?"active":""}"></div>`).join("");
+
+    wPrev.style.visibility = (wStep===0) ? "hidden" : "visible";
+    wNext.textContent = (wStep===steps.length-1) ? "Crear" : "Siguiente";
+
+    if(wStep === 4){
+      renderCoverSuggestions();
     }
   }
-}
 
-function resetWizard(){
-  wTitle.value = "";
-  wCat.value = "Viajes";
-  wCost.value = "";
-  wDesc.value = "";
-  wPlace.value = "";
-  wLat.value = "";
-  wLng.value = "";
-  wImgUrl.value = "";
-  wSearchQuery.value = "";
-  wLocalImgs = [];
-  wCoverChoice = null;
-  wFetchedImages = [];
-  wLocalCount.textContent = "0 seleccionadas";
-  wLocalFiles.value = "";
-  coverGrid.innerHTML = "";
-  pexelsCredit.style.display = "none";
-  pexelsApiNotice.style.display = "none";
-  setWizardStep(0);
-}
-
-function checkApiKeyNotice(){
-  var hasKey = PEXELS_API_KEY && PEXELS_API_KEY !== "TU_API_KEY_AQUI";
-  pexelsApiNotice.style.display = hasKey ? "none" : "block";
-}
-
-function renderCoverLoading(){
-  coverGrid.innerHTML = [0,1,2].map(function(){
-    return '<div class="coverOpt loading">'
-      + '<div class="coverSkeleton"></div>'
-      + '<div class="cap">Buscando...</div>'
-      + '</div>';
-  }).join("");
-  pexelsCredit.style.display = "none";
-}
-
-function renderCoverResults(photos, hasKey){
-  wFetchedImages = photos;
-
-  if(!wCoverChoice && photos.length){
-    wCoverChoice = photos[0].url;
-  }
-
-  if(!photos.length){
-    coverGrid.innerHTML = '<div class="smallNote" style="grid-column:1/-1">No se encontraron imágenes. Prueba otra búsqueda o pega una URL.</div>';
-    pexelsCredit.style.display = "none";
-    return;
-  }
-
-  coverGrid.innerHTML = photos.map(function(img, idx){
-    var isSelected = img.url === wCoverChoice;
-    return '<div class="coverOpt ' + (isSelected ? "selected" : "") + '" data-cover-url="' + escapeHTML(img.url) + '">'
-      + '<img src="' + escapeHTML(img.thumb) + '" alt="Portada ' + (idx+1) + '" loading="lazy">'
-      + '<div class="cap">Opción ' + (idx+1) + '</div>'
-      + '</div>';
-  }).join("");
-
-  pexelsCredit.style.display = hasKey ? "block" : "none";
-}
-
-async function triggerImageSearch(query){
-  if(!query || !query.trim()) return;
-  checkApiKeyNotice();
-  renderCoverLoading();
-
-  var result = await fetchPexelsImages(query.trim(), 3);
-  wCoverChoice = null; // reset para elegir la primera del nuevo resultado
-  renderCoverResults(result.photos, result.hasKey);
-}
-
-// Evento del botón buscar
-wSearchBtn.addEventListener("click", function(){
-  var q = wSearchQuery.value.trim();
-  if(!q){ alert("Escribe algo para buscar 🙂"); return; }
-  triggerImageSearch(q);
-});
-
-// Buscar también al pulsar Enter en el campo
-wSearchQuery.addEventListener("keydown", function(e){
-  if(e.key === "Enter"){
-    e.preventDefault();
-    var q = wSearchQuery.value.trim();
-    if(q) triggerImageSearch(q);
-  }
-});
-
-// Selección de portada
-document.addEventListener("click", function(e){
-  var opt = e.target.closest(".coverOpt");
-  if(!opt) return;
-  var url = opt.dataset.coverUrl;
-  if(!url) return;
-  wCoverChoice = url;
-  $$(".coverOpt").forEach(function(o){
-    o.classList.toggle("selected", o.dataset.coverUrl === url);
-  });
-});
-
-function openWizard(prefill){
-  prefill = prefill || {};
-  resetWizard();
-  if(prefill.titulo) wTitle.value = prefill.titulo;
-  if(prefill.cat) wCat.value = prefill.cat;
-  wizardBack.classList.add("show");
-}
-function closeWizard(){ wizardBack.classList.remove("show"); }
-
-wizardClose.addEventListener("click", closeWizard);
-wizardBack.addEventListener("click", function(e){ if(e.target===wizardBack) closeWizard(); });
-
-wPickLocalBtn.addEventListener("click", function(){ wLocalFiles.click(); });
-wLocalFiles.addEventListener("change", async function(){
-  if(!wLocalFiles.files || !wLocalFiles.files.length) return;
-  try{
-    var dataUrls = await filesToDataUrls(wLocalFiles.files);
-    wLocalImgs.push.apply(wLocalImgs, dataUrls);
-    wLocalCount.textContent = wLocalImgs.length + " seleccionadas";
-  }catch(e){
-    alert("No se han podido cargar una o más fotos.");
-  }finally{
+  function resetWizard(){
+    wTitle.value = "";
+    wCat.value = "Viajes";
+    wCost.value = "";
+    wDesc.value = "";
+    wPlace.value = "";
+    wLat.value = "";
+    wLng.value = "";
+    wImgUrl.value = "";
+    wLocalImgs = [];
+    wCoverChoice = null;
+    wLocalCount.textContent = "0 seleccionadas";
     wLocalFiles.value = "";
-  }
-});
-
-wPrev.addEventListener("click", function(){ setWizardStep(wStep-1); });
-
-wNext.addEventListener("click", function(){
-  var steps = wizardStepEls();
-  var stepsCount = steps.length;
-
-  if(wStep === 0){
-    if(!wTitle.value.trim()){ alert("Ponga un título 🙂"); return; }
-    setWizardStep(wStep+1);
-    return;
+    setWizardStep(0);
   }
 
-  if(wStep < stepsCount-1){
-    setWizardStep(wStep+1);
-    return;
-  }
+  function renderCoverSuggestions(){
+    if(!coverGrid) return;
 
-  // CREAR OBJETIVO
-  var titulo = wTitle.value.trim();
-  var cat = wCat.value;
-  var coste = Number(wCost.value || 0);
-  var desc = wDesc.value.trim();
-  var place = wPlace.value.trim();
-  var latRaw = (wLat.value || "").trim();
-  var lngRaw = (wLng.value || "").trim();
-  var lat = latRaw === "" ? null : Number(latRaw);
-  var lng = lngRaw === "" ? null : Number(lngRaw);
+    const title = (wTitle.value || "").trim() || "objetivo";
+    const cat = (wCat.value || "Viajes").trim();
 
-  if((lat !== null && !Number.isFinite(lat)) || (lng !== null && !Number.isFinite(lng))){
-    alert("Lat/Lng deben ser números válidos (o déjelos vacíos).");
-    return;
-  }
+    const suggestions = generateImageSuggestions(title, cat);
 
-  var imgs = [];
-
-  // PRIORIDAD 1: foto local → portada
-  if(wLocalImgs.length){
-    imgs.push(wLocalImgs[0]);
-  } else {
-    // PRIORIDAD 2: URL manual
-    var manualUrl = (wImgUrl.value || "").trim();
-    if(manualUrl){
-      imgs.push(manualUrl);
-    } else {
-      // PRIORIDAD 3: portada de Pexels elegida
-      if(wCoverChoice) imgs.push(wCoverChoice);
+    if(!wCoverChoice || !suggestions.includes(wCoverChoice)){
+      wCoverChoice = suggestions[0];
     }
+
+    coverGrid.innerHTML = suggestions.map((url, idx)=>`
+      <div class="coverOpt ${url===wCoverChoice ? "selected" : ""}" data-cover-url="${url}">
+        <img src="${url}" alt="Portada ${idx+1}">
+        <div class="cap">Opción ${idx+1}</div>
+      </div>
+    `).join("");
   }
 
-  // resto de fotos locales
-  if(wLocalImgs.length > 1) imgs.push.apply(imgs, wLocalImgs.slice(1));
-
-  // limpiar duplicados y vacíos
-  imgs = Array.from(new Set(imgs)).filter(Boolean);
-
-  if(!imgs.length){
-    alert("Añada al menos una imagen: búsqueda, URL o foto del móvil.");
-    return;
+  function openWizard(prefill={}){
+    resetWizard();
+    if(prefill.titulo) wTitle.value = prefill.titulo;
+    if(prefill.cat) wCat.value = prefill.cat;
+    wizardBack.classList.add("show");
   }
 
-  var nextId = objetivos.reduce(function(m,o){ return Math.max(m, Number(o.id)||0); }, 0) + 1;
+  function closeWizard(){ 
+    wizardBack.classList.remove("show"); 
+  }
 
-  objetivos.unshift({
-    id: nextId,
-    titulo: titulo,
-    cat: cat,
-    coste: coste,
-    done: false,
-    desc: desc,
-    imgs: imgs,
-    place: place,
-    lat: lat,
-    lng: lng
+  wizardClose.addEventListener("click", closeWizard);
+  wizardBack.addEventListener("click", (e)=>{ if(e.target===wizardBack) closeWizard(); });
+
+  wPickLocalBtn.addEventListener("click", ()=> wLocalFiles.click());
+
+  wLocalFiles.addEventListener("change", async ()=>{
+    if(!wLocalFiles.files || !wLocalFiles.files.length) return;
+    try{
+      const dataUrls = await filesToDataUrls(wLocalFiles.files);
+      wLocalImgs.push(...dataUrls);
+      wLocalCount.textContent = `${wLocalImgs.length} seleccionadas`;
+    }catch{
+      alert("No se han podido cargar una o más fotos.");
+    }finally{
+      wLocalFiles.value = "";
+    }
   });
 
-  refreshEverywhere();
-  closeWizard();
-  showView("home");
-  renderHome(currentCat);
-});
+  wPrev.addEventListener("click", ()=> setWizardStep(wStep-1));
 
-$("#addWizardBtn").addEventListener("click", function(){ openWizard(); });
+  wNext.addEventListener("click", ()=>{
+    const stepsCount = wizardSteps().length;
 
-/* ================== START ================== */
-$("#start").addEventListener("click", function(){
-  screenOnboarding.classList.remove("active");
-  screenApp.classList.add("active");
+    if(wStep === 0){
+      if(!wTitle.value.trim()){
+        alert("Ponga un título 🙂");
+        return;
+      }
+      setWizardStep(wStep+1);
+      return;
+    }
+
+    if(wStep < stepsCount-1){
+      setWizardStep(wStep+1);
+      return;
+    }
+
+    // CREAR
+    const titulo = wTitle.value.trim();
+    const cat = wCat.value;
+    const coste = Number(wCost.value || 0);
+    const desc = wDesc.value.trim();
+    const place = wPlace.value.trim();
+
+    const latRaw = (wLat.value || "").trim();
+    const lngRaw = (wLng.value || "").trim();
+    const lat = latRaw==="" ? null : Number(latRaw);
+    const lng = lngRaw==="" ? null : Number(lngRaw);
+
+    if((lat !== null && !Number.isFinite(lat)) || (lng !== null && !Number.isFinite(lng))){
+      alert("Lat/Lng deben ser números válidos (o déjelos vacíos).");
+      return;
+    }
+
+    let imgs = [];
+
+    // PRIORIDAD 1: si hay fotos locales → la primera es portada
+    if(wLocalImgs.length){
+      imgs.push(wLocalImgs[0]);
+    }else{
+      // PRIORIDAD 2: si escribió URL manual → esa es portada
+      const manualUrl = (wImgUrl.value || "").trim();
+      if(manualUrl){
+        imgs.push(manualUrl);
+      }else{
+        // PRIORIDAD 3: si no hay nada anterior → usamos portada automática elegida
+        if(wCoverChoice){
+          imgs.push(wCoverChoice);
+        }
+      }
+    }
+
+    // añadir resto de fotos locales (si hay más)
+    if(wLocalImgs.length > 1){
+      imgs.push(...wLocalImgs.slice(1));
+    }
+
+    // limpiar duplicados y vacíos
+    imgs = Array.from(new Set(imgs)).filter(Boolean);
+
+    if(!imgs.length){
+      alert("Añada al menos una imagen (URL o foto del móvil).");
+      return;
+    }
+
+    const nextId = objetivos.reduce((m,o)=>Math.max(m, Number(o.id)||0), 0) + 1;
+
+    objetivos.unshift({
+      id: nextId,
+      titulo,
+      cat,
+      coste,
+      done: false,
+      desc,
+      imgs,
+      place,
+      lat,
+      lng
+    });
+
+    refreshEverywhere();
+    closeWizard();
+
+    // opcional: ir a home y ver el nuevo
+    showView("home");
+    renderHome(currentCat);
+  });
+
+  // Evento para selección de portada automática
+  document.addEventListener("click", (e)=>{
+    const opt = e.target.closest(".coverOpt");
+    if(!opt) return;
+    const url = opt.dataset.coverUrl;
+    if(!url) return;
+    wCoverChoice = url;
+    renderCoverSuggestions();
+  });
+
+  // Botón "Añadir objetivo" debajo de tabs
+  $("#addWizardBtn").addEventListener("click", ()=> openWizard());
+
+  /* ================== START ================== */
+  $("#start").addEventListener("click", () => {
+    screenOnboarding.classList.remove("active");
+    screenApp.classList.add("active");
+    renderHome("Todos");
+    showView("home");
+  });
+
+  /* ================== INIT ================== */
   renderHome("Todos");
   showView("home");
-});
-
-/* ================== INIT ================== */
-renderHome("Todos");
-showView("home");
 
 </script>
 </body>
