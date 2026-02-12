@@ -103,6 +103,9 @@
     .ctaWrap{
       width:100%;
       padding-bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
 
     .btn{
@@ -117,6 +120,24 @@
       cursor:pointer;
     }
     .btn:active{transform:translateY(1px)}
+
+    .btnAlt{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.22);
+    }
+    .btnGhost{
+      background:transparent;
+      color:#fff;
+      border:1px solid rgba(255,255,255,.22);
+    }
+    .smallAuthNote{
+      text-align:center;
+      font-size:12px;
+      color:rgba(255,255,255,.70);
+      font-weight:700;
+      padding-top:2px;
+    }
 
     /* ================= APP SHELL ================= */
     .app{
@@ -209,16 +230,10 @@
     }
 
     /* ✅ Cumplidos: “apagados” */
-    .objCard.done{
-      opacity:.62;
-    }
-    .objCard.done .objImg{
-      filter:saturate(.85) contrast(.95);
-    }
+    .objCard.done{ opacity:.62; }
+    .objCard.done .objImg{ filter:saturate(.85) contrast(.95); }
     .objCard.done .objTitle,
-    .objCard.done .objMeta{
-      color: rgba(11,16,34,.55);
-    }
+    .objCard.done .objMeta{ color: rgba(11,16,34,.55); }
 
     .objImg{flex:1; background:center/cover no-repeat;}
     .objBody{
@@ -311,6 +326,23 @@
     .rowItem strong{display:block;color:var(--ink);font-size:13px;line-height:1.2;}
     .rowItem small{display:block;margin-top:6px;color:rgba(11,16,34,.55);font-weight:700;font-size:12px;}
     .cost{font-weight:950;color:rgba(11,16,34,.78);font-size:13px;white-space:nowrap;}
+
+    .logoutRow{
+      margin-top:14px;
+      display:flex;
+      gap:10px;
+    }
+    .logoutRow button{
+      flex:1;
+      border-radius:14px;
+      padding:12px;
+      font-weight:900;
+      border:1px solid rgba(0,0,0,.10);
+      cursor:pointer;
+      font-size:13px;
+      background:#fff;
+      color:#b91c1c;
+    }
 
     /* ================= DETALLE ================= */
     .detail{
@@ -694,6 +726,20 @@
       font-size:12px;
       font-weight:800;
     }
+
+    /* Pequeño “estado vacío” en Home */
+    .empty{
+      height:100%;
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(11,16,34,.55);
+      font-weight:900;
+      padding-bottom:92px;
+      text-align:center;
+    }
+    .empty b{color:rgba(11,16,34,.75)}
   </style>
 </head>
 
@@ -733,8 +779,13 @@
           No es una app más. Es un recordatorio.
         </div>
       </div>
+
+      <!-- ✅ Auth UI -->
       <div class="ctaWrap">
-        <button class="btn" id="start">Empezar →</button>
+        <button class="btn" id="enterBtn" style="display:none;">Entrar →</button>
+        <button class="btn btnAlt" id="loginBtn">Iniciar sesión</button>
+        <button class="btn btnGhost" id="registerBtn">Registrarme</button>
+        <div class="smallAuthNote" id="authNote">Tus objetivos se guardan en tu cuenta.</div>
       </div>
     </section>
   </div>
@@ -799,6 +850,10 @@
 
             <div class="sectionTitle" style="margin-top:14px;">Cumplidos</div>
             <div class="list" id="listDone"></div>
+
+            <div class="logoutRow">
+              <button id="logoutBtn" type="button">Cerrar sesión</button>
+            </div>
           </div>
         </div>
 
@@ -879,7 +934,7 @@
                       <span id="localCount">0 seleccionadas</span>
                     </div>
                     <input class="hiddenInput" id="localFiles" type="file" accept="image/*" multiple />
-                    <div class="smallNote">Se guardan en localStorage. Muchas fotos grandes = puede petar el límite.</div>
+                    <div class="smallNote">Se guardan en Firestore como dataURL. Muchas fotos grandes = puede petar el límite.</div>
                   </div>
 
                   <div class="field">
@@ -984,256 +1039,58 @@
 
 </div>
 
-<script>
-  /* ================== STORAGE ================== */
-  const STORAGE_KEY = "lalista_objetivos_v5_seed_19";
+<!-- ✅ Firebase + app logic -->
+<script type="module">
+  /* ================== FIREBASE ================== */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, GoogleAuthProvider,
+    signInWithPopup, signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDocs, setDoc, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  const seed = [
-    {
-      id: 1,
-      titulo: "Visitar cataratas del Niágara",
-      cat: "Viajes",
-      coste: 1300,
-      done: false,
-      desc: "Las cataratas más icónicas del mundo. Quiero verlas de cerca, empaparme y quedarme un rato mirando sin prisa.",
-      place: "Niagara Falls, Canadá/EE.UU.",
-      lat: 43.0828,
-      lng: -79.0742,
-      imgs: ["https://imgcap.capturetheatlas.com/wp-content/uploads/2020/10/niagara-falls-fun-things-to-do-in-nyc.jpg"]
-    },
-    {
-      id: 2,
-      titulo: "La Puerta del Infierno (Turkmenistán)",
-      cat: "Viajes",
-      coste: 2200,
-      done: false,
-      desc: "El cráter de gas de Darvaza. Quiero verlo de noche, cuando parece literalmente otro planeta.",
-      place: "Darvaza, Turkmenistán",
-      lat: 40.2520,
-      lng: 58.4390,
-      imgs: ["https://e01-elmundo.uecdn.es/assets/multimedia/imagenes/2022/01/11/16418898392855.jpg"]
-    },
-    {
-      id: 3,
-      titulo: "Visitar la Isla de Pascua (Rapa Nui)",
-      cat: "Viajes",
-      coste: 3500,
-      done: false,
-      desc: "Rapa Nui y sus moáis. Quiero recorrer la isla en plan roadtrip tranquilo y ver el amanecer en Tongariki.",
-      place: "Isla de Pascua, Chile",
-      lat: -27.1127,
-      lng: -109.3497,
-      imgs: ["https://static.nationalgeographicla.com/files/styles/image_3200/public/01_20221001_rapa_nui_307.jpg?w=1900&h=1425"]
-    },
-    {
-      id: 4,
-      titulo: "Ir a Tomorrowland",
-      cat: "Experiencias",
-      coste: 1200,
-      done: false,
-      desc: "Una vez en la vida: festival gigante, escenario de fantasía y volver sin voz.",
-      place: "Boom, Bélgica",
-      lat: 51.0910,
-      lng: 4.3710,
-      imgs: ["https://tronica.fm/uploads/images/202510/image_870x_68f09651b2594.jpg"]
-    },
-    {
-      id: 5,
-      titulo: "Ver auroras boreales",
-      cat: "Viajes",
-      coste: 1500,
-      done: false,
-      desc: "Ir con paciencia (y abrigo serio). Si el cielo se enciende, ya está: objetivo desbloqueado.",
-      place: "Tromsø, Noruega",
-      lat: 69.6492,
-      lng: 18.9553,
-      imgs: ["https://images.unsplash.com/photo-1593378026483-2a1fd46a35bd?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8YXVyb3JhJTIwYm9yZWFsfGVufDB8fDB8fHww"]
-    },
-    {
-      id: 6,
-      titulo: "Hacer una travesía en moto de nieve",
-      cat: "Experiencias",
-      coste: 1800,
-      done: false,
-      desc: "Ruta por nieve con paisajes de postal. Quiero sentir el silencio del invierno, pero a 60 km/h.",
-      place: "Rovaniemi, Finlandia",
-      lat: 66.5039,
-      lng: 25.7294,
-      imgs: ["https://cdn-imgix.headout.com/media/images/5b1a01c30b1b9fe0554a875dec1b37a0-30956-Zakopane-Zakopane-SnowmobiletourandThermalPoolswithtransfer-04.jpg?auto=format&w=900&h=562.5&q=90&ar=16%3A10&crop=faces%2Ccenter&fit=crop"]
-    },
-    {
-      id: 7,
-      titulo: "Ver jugar a Stephen Curry",
-      cat: "Experiencias",
-      coste: 2200,
-      done: false,
-      desc: "Ver a Curry en directo. Triples imposibles, ambiente NBA y salir diciendo: 'vale, esto era otro nivel'.",
-      place: "Chase Center, San Francisco (EE.UU.)",
-      lat: 37.7680,
-      lng: -122.3877,
-      imgs: ["https://austinshowtime.shop/cdn/shop/files/websteph_1024x1024@2x.jpg?v=1717168063"]
-    },
-    {
-      id: 8,
-      titulo: "Ver un partido de la NBA en directo",
-      cat: "Experiencias",
-      coste: 2000,
-      done: false,
-      desc: "Entrar en un pabellón NBA y vivirlo como toca: previa, himno, show y partido a tope.",
-      place: "Madison Square Garden, Nueva York (EE.UU.)",
-      lat: 40.7505,
-      lng: -73.9934,
-      imgs: ["https://ewnqp79wvj7.exactdn.com/wp-content/uploads/2024/06/Match-NBA-SAlle-NBA-Los-Angeles-Clippers.jpg?strip=all"]
-    },
-    {
-      id: 9,
-      titulo: "Ver unas Finales de la NBA en directo",
-      cat: "Experiencias",
-      coste: 4000,
-      done: false,
-      desc: "Finales NBA: precios locos, sí. Pero una vez. El ambiente tiene que ser una barbaridad.",
-      place: "Sede variable (ej.: Los Ángeles, EE.UU.)",
-      lat: 34.0430,
-      lng: -118.2673,
-      imgs: ["https://wallpapers.com/images/hd/nba-finals-iconic-golden-trophy-21vc2qdll38jh5zv.jpg"]
-    },
-    {
-      id: 10,
-      titulo: "Esquiar (España)",
-      cat: "Experiencias",
-      coste: 500,
-      done: false,
-      desc: "Un finde de nieve en condiciones: aprender/mejorar, comer bien y acabar reventado pero feliz.",
-      place: "Sierra Nevada, Granada (España)",
-      lat: 37.0950,
-      lng: -3.3990,
-      imgs: ["https://i.pinimg.com/474x/ef/f6/64/eff6642a4e939908d4df9bfec2ef51d9.jpg"]
-    },
-    {
-      id: 11,
-      titulo: "Visitar el Taj Mahal",
-      cat: "Viajes",
-      coste: 1600,
-      done: false,
-      desc: "Agra y el Taj Mahal. Ir al amanecer para verlo con esa luz que parece irreal.",
-      place: "Agra, India",
-      lat: 27.1751,
-      lng: 78.0421,
-      imgs: ["https://i.pinimg.com/736x/39/a5/69/39a569733cd9a9ed352512183137479b.jpg"]
-    },
-    {
-      id: 12,
-      titulo: "Visitar la Gran Muralla China",
-      cat: "Viajes",
-      coste: 2200,
-      done: false,
-      desc: "Caminar un tramo de la Muralla y pensar: '¿cómo narices hicieron esto?'.",
-      place: "Mutianyu, China",
-      lat: 40.4319,
-      lng: 116.5704,
-      imgs: ["https://i.pinimg.com/736x/4c/46/72/4c46725a3d8cde0b13e5f79fabce4964.jpg"]
-    },
-    {
-      id: 13,
-      titulo: "Visitar el Carnaval de Venecia",
-      cat: "Viajes",
-      coste: 600,
-      done: false,
-      desc: "Máscaras, canales y ese rollo cinematográfico. Plan perfecto de 2–3 días.",
-      place: "Venecia, Italia",
-      lat: 45.4408,
-      lng: 12.3155,
-      imgs: ["https://i.pinimg.com/564x/c8/de/34/c8de34212a4d0a930fa0309fda083957.jpg"]
-    },
-    {
-      id: 14,
-      titulo: "Visitar el Carnaval de Río de Janeiro",
-      cat: "Viajes",
-      coste: 2300,
-      done: false,
-      desc: "Río en carnaval: energía total. Ver el Sambódromo y vivir la ciudad en modo locura controlada.",
-      place: "Sambódromo, Río (Brasil)",
-      lat: -22.9133,
-      lng: -43.1964,
-      imgs: ["https://www.shutterstock.com/image-photo/rio-brazil-march-3-2025-600nw-2593678661.jpg"]
-    },
-    {
-      id: 15,
-      titulo: "Viajar en crucero",
-      cat: "Experiencias",
-      coste: 1500,
-      done: false,
-      desc: "Hacer un crucero (rollo Mediterráneo). Desconectar, parar en varias ciudades y vivirlo sin prisas.",
-      place: "Puerto de Barcelona (España)",
-      lat: 41.3516,
-      lng: 2.1586,
-      imgs: ["https://i.pinimg.com/736x/52/30/1b/52301bbae2c6dab15e0831e6c0082a01.jpg"]
-    },
-    {
-      id: 16,
-      titulo: "Visitar el Coliseo Romano",
-      cat: "Viajes",
-      coste: 500,
-      done: false,
-      desc: "Roma clásica: Coliseo, foro y perderme por la ciudad como si fuera un videojuego histórico.",
-      place: "Roma, Italia",
-      lat: 41.8902,
-      lng: 12.4922,
-      imgs: ["https://media.istockphoto.com/id/972862150/es/foto/ciudad-de-roma-en-la-noche.jpg?s=612x612&w=0&k=20&c=hKTfqmyGC3UUq3-FV4duOmaUYtfvK73rnLmQYKsbeq8="]
-    },
-    {
-      id: 17,
-      titulo: "Visitar el Desierto del Sáhara",
-      cat: "Viajes",
-      coste: 900,
-      done: false,
-      desc: "Dunas, noche en haima, cielo lleno de estrellas. El desierto tiene que imponerte respeto.",
-      place: "Merzouga, Marruecos",
-      lat: 31.0801,
-      lng: -4.0133,
-      imgs: ["https://w0.peakpx.com/wallpaper/478/806/HD-wallpaper-sahara-desert-man-nature-sand-sky.jpg"]
-    },
-    {
-      id: 18,
-      titulo: "Visitar Chichén Itzá",
-      cat: "Viajes",
-      coste: 2000,
-      done: false,
-      desc: "Historia maya en directo. Y ya que estoy: cenotes + tacos (prioridades claras).",
-      place: "Yucatán, México",
-      lat: 20.6843,
-      lng: -88.5678,
-      imgs: ["https://images.unsplash.com/photo-1568402102990-bc541580b59f?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y2hpY2hlbiUyMGl0emElMkMlMjBtZXhpY298ZW58MHx8MHx8fDA%3D"]
-    },
-    {
-      id: 19,
-      titulo: "Visitar las pirámides de Egipto",
-      cat: "Viajes",
-      coste: 1700,
-      done: false,
-      desc: "Giza. Verlas con mis ojos y confirmar que no es 'una foto bonita': es una locura de la humanidad.",
-      place: "Giza, Egipto",
-      lat: 29.9792,
-      lng: 31.1342,
-      imgs: ["https://w0.peakpx.com/wallpaper/459/826/HD-wallpaper-pyramids-desert-piramide.jpg"]
-    }
-  ];
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBS_h2F_gm8pYo4w3iM4Ac-ibr9DfcwLU",
+    authDomain: "lalista-ed7d4.firebaseapp.com",
+    projectId: "lalista-ed7d4",
+    storageBucket: "lalista-ed7d4.firebasestorage.app",
+    messagingSenderId: "842332318376",
+    appId: "1:842332318376:web:cfa9cfe4b639ea3924709d",
+    measurementId: "G-45QYFHG3VS"
+  };
 
-  function loadObjetivos(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return structuredClone(seed);
-      const data = JSON.parse(raw);
-      if(!Array.isArray(data) || data.length === 0) return structuredClone(seed);
-      return data;
-    }catch{
-      return structuredClone(seed);
-    }
+  const appFB = initializeApp(firebaseConfig);
+  const auth = getAuth(appFB);
+  const db = getFirestore(appFB);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+
+  function colObjetivos(){
+    return collection(db, `users/${currentUser.uid}/objetivos`);
   }
-  function saveObjetivos(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(objetivos));
+
+  async function cloudLoadObjetivos(){
+    const snap = await getDocs(colObjetivos());
+    const arr = [];
+    snap.forEach(d => arr.push(d.data()));
+    arr.sort((a,b)=>(Number(a.id)||0)-(Number(b.id)||0));
+    return arr;
   }
-  let objetivos = loadObjetivos();
+
+  async function cloudSaveObjetivo(o){
+    await setDoc(doc(db, `users/${currentUser.uid}/objetivos/id_${o.id}`), o, { merge:true });
+  }
+
+  async function cloudDeleteObjetivo(id){
+    await deleteDoc(doc(db, `users/${currentUser.uid}/objetivos/id_${id}`));
+  }
+
+  /* ================== DATA ================== */
+  // ✅ cada usuario empieza vacío
+  let objetivos = [];
 
   /* ================== HELPERS ================== */
   const $ = (q) => document.querySelector(q);
@@ -1263,6 +1120,18 @@
   const viewCompass = $("#view-compass");
   const viewProfile = $("#view-profile");
 
+  function goOnboarding(){
+    screenOnboarding.classList.add("active");
+    screenApp.classList.remove("active");
+    screenDetail.classList.remove("active");
+  }
+
+  function goApp(){
+    screenOnboarding.classList.remove("active");
+    screenApp.classList.add("active");
+    screenDetail.classList.remove("active");
+  }
+
   function showOnly(view){
     viewHome.style.display = (view==="home") ? "block" : "none";
     viewCompass.style.display = (view==="compass") ? "block" : "none";
@@ -1271,7 +1140,7 @@
 
   function setNavActive(which){
     $$(".navBtn").forEach(b => b.classList.remove("active"));
-    $(`.navBtn[data-nav="${which}"]`).classList.add("active");
+    $(`.navBtn[data-nav="${which}"]`)?.classList.add("active");
   }
 
   function showView(which){
@@ -1307,13 +1176,96 @@
 
   $$(".navBtn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.nav)));
 
+  /* ================== AUTH UI ================== */
+  const enterBtn = $("#enterBtn");
+  const loginBtn = $("#loginBtn");
+  const registerBtn = $("#registerBtn");
+  const authNote = $("#authNote");
+  const logoutBtn = $("#logoutBtn");
+
+  async function doGoogle(){
+    try{
+      await signInWithPopup(auth, provider);
+    }catch(e){
+      console.error(e);
+      alert("No se pudo iniciar sesión.");
+    }
+  }
+
+  loginBtn?.addEventListener("click", doGoogle);
+  registerBtn?.addEventListener("click", doGoogle);
+
+  enterBtn?.addEventListener("click", () => {
+    if(!currentUser) return;
+    goApp();
+    renderHome("Todos");
+    showView("home");
+  });
+
+  logoutBtn?.addEventListener("click", async () => {
+    try{
+      await signOut(auth);
+    }catch(e){
+      console.error(e);
+      alert("No se pudo cerrar sesión.");
+    }
+  });
+
+  function updateAuthUI(){
+    if(currentUser){
+      enterBtn.style.display = "block";
+      loginBtn.style.display = "none";
+      registerBtn.style.display = "none";
+      authNote.textContent = `Sesión activa: ${currentUser.email || "usuario"}`;
+    }else{
+      enterBtn.style.display = "none";
+      loginBtn.style.display = "block";
+      registerBtn.style.display = "block";
+      authNote.textContent = "Tus objetivos se guardan en tu cuenta.";
+    }
+  }
+
+  onAuthStateChanged(auth, async (u) => {
+    currentUser = u || null;
+    updateAuthUI();
+
+    if(!currentUser){
+      objetivos = [];
+      goOnboarding();
+      return;
+    }
+
+    // ✅ carga objetivos del usuario (vacío si es nuevo)
+    objetivos = await cloudLoadObjetivos();
+
+    // entra directo a la app
+    goApp();
+    renderHome("Todos");
+    showView("home");
+  });
+
   /* ================== HOME ================== */
   const carousel = $("#carousel");
   let currentCat = "Todos";
 
   function renderHome(cat="Todos"){
     currentCat = cat;
+
     const list = objetivos.filter(o => cat === "Todos" || o.cat === cat);
+
+    if(!list.length){
+      carousel.innerHTML = `
+        <div class="empty">
+          <div>
+            <div style="font-size:18px;margin-bottom:6px;"><b>Vacío.</b></div>
+            <div style="font-size:13px;font-weight:800;opacity:.85;">
+              Abra ⚙️ y cree su primer objetivo.
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
 
     carousel.innerHTML = list.map(o => `
       <article class="objCard ${o.done ? "done" : ""}" data-id="${o.id}">
@@ -1484,11 +1436,12 @@
     screenApp.classList.add("active");
   }
 
-  function toggleDone(){
+  async function toggleDone(){
     const o = objetivos.find(x => x.id === selectedId);
     if(!o) return;
     o.done = !o.done;
-    saveObjetivos();
+
+    await cloudSaveObjetivo(o);
 
     const place = o.place ? ` · ${o.place}` : "";
     $("#chipState").textContent = o.done ? "Cumplido" : "Pendiente";
@@ -1779,7 +1732,6 @@
   });
 
   function refreshEverywhere(){
-    saveObjetivos();
     renderHome(currentCat);
     if(viewProfile.style.display !== "none") renderProfile();
     if(map) renderMapMarkers();
@@ -1790,7 +1742,12 @@
     }
   }
 
-  btnSave.addEventListener("click", () => {
+  btnSave.addEventListener("click", async () => {
+    if(!currentUser){
+      alert("Inicie sesión primero.");
+      return;
+    }
+
     const data = readForm();
 
     if(!data.titulo){
@@ -1833,9 +1790,11 @@
       return;
     }
 
+    let savedObj = null;
+
     if(editingId == null){
       const nextId = objetivos.reduce((m,o)=>Math.max(m, Number(o.id)||0), 0) + 1;
-      objetivos.unshift({
+      savedObj = {
         id: nextId,
         titulo: data.titulo,
         cat: data.cat,
@@ -1846,11 +1805,12 @@
         place: data.place,
         lat: data.lat,
         lng: data.lng
-      });
+      };
+      objetivos.unshift(savedObj);
     }else{
       const idx = objetivos.findIndex(x => x.id === editingId);
       if(idx >= 0){
-        objetivos[idx] = {
+        savedObj = {
           ...objetivos[idx],
           titulo: data.titulo,
           cat: data.cat,
@@ -1862,8 +1822,11 @@
           lat: data.lat,
           lng: data.lng
         };
+        objetivos[idx] = savedObj;
       }
     }
+
+    await cloudSaveObjetivo(savedObj);
 
     pendingLocalImgs = [];
     updateLocalCount();
@@ -1872,11 +1835,17 @@
     showSettingsList();
   });
 
-  btnDelete.addEventListener("click", () => {
+  btnDelete.addEventListener("click", async () => {
+    if(!currentUser){
+      alert("Inicie sesión primero.");
+      return;
+    }
     if(editingId == null) return;
     const o = objetivos.find(x => x.id === editingId);
     const ok = confirm(`¿Borrar "${o?.titulo || "objetivo"}"?`);
     if(!ok) return;
+
+    await cloudDeleteObjetivo(editingId);
 
     objetivos = objetivos.filter(x => x.id !== editingId);
 
@@ -1892,18 +1861,12 @@
     showSettingsList();
   });
 
-  /* ================== START ================== */
-  $("#start").addEventListener("click", () => {
-    screenOnboarding.classList.remove("active");
-    screenApp.classList.add("active");
-    renderHome("Todos");
-    showView("home");
-  });
+  /* ================== MAPA: popup -> detalle ================== */
+  // ya está arriba (document click)
 
-  /* ================== INIT ================== */
-  renderHome("Todos");
+  /* ================== INIT UI ================== */
+  // No forzamos entrar ni render aquí: lo decide onAuthStateChanged.
   showView("home");
-
 </script>
 </body>
 </html>
