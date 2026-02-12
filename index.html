@@ -144,8 +144,8 @@
     .btnEntrar{
       width:100%;border:none;border-radius:999px;padding:16px;
       font-size:16px;font-weight:750;
-      background:linear-gradient(180deg,var(--cta),var(--cta2));
-      color:#062a26;cursor:pointer;
+      background:#0000FF;
+      color:#fff;cursor:pointer;
     }
     .btnEntrar:active{transform:translateY(1px)}
     .btnRegistrar{
@@ -305,7 +305,7 @@
     /* =============== APP SHELL =============== */
     .app{
       height:100%;
-      background:#123d1f;
+      background:#000;
       display:flex;
     }
     .appShell{
@@ -342,14 +342,71 @@
       display:flex;gap:10px;
       padding:0 16px 12px;
       background:#f6f7fb;z-index:2;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
     }
+    .tabs::-webkit-scrollbar{display:none;}
     .tab{
       padding:10px 14px;border-radius:999px;
       background:var(--pill);border:none;
       font-weight:750;font-size:13px;
       color:rgba(11,16,34,.75);cursor:pointer;
+      white-space:nowrap;flex:0 0 auto;
     }
     .tab.active{background:var(--pillActive);color:var(--ink);}
+
+    /* Botón cambio de vista */
+    .viewToggleBtn{
+      width:40px;height:40px;flex:0 0 auto;
+      border-radius:14px;border:1px solid rgba(0,0,0,.10);
+      background:#fff;cursor:pointer;font-size:16px;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 8px rgba(0,0,0,.06);
+    }
+    .viewToggleBtn:active{transform:translateY(1px)}
+
+    /* Vista lista */
+    .listView{
+      height:100%;overflow-y:auto;
+      padding:6px 16px 92px;
+      -webkit-overflow-scrolling:touch;
+      display:none;
+    }
+    .listView.active{display:block;}
+    .carousel.hidden{display:none;}
+
+    .listObjCard{
+      background:#fff;border-radius:16px;
+      border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 4px 16px rgba(0,0,0,.08);
+      display:flex;gap:0;overflow:hidden;
+      cursor:pointer;margin-bottom:12px;
+      transition:opacity .18s;
+    }
+    .listObjCard.done{opacity:.62;}
+    .listObjImg{
+      width:90px;flex:0 0 90px;
+      background:center/cover no-repeat;
+    }
+    .listObjBody{
+      flex:1;padding:12px;
+      display:flex;flex-direction:column;justify-content:center;gap:4px;
+      min-width:0;
+    }
+    .listObjTitle{font-size:14px;font-weight:850;color:var(--ink);line-height:1.2;}
+    .listObjMeta{font-size:12px;color:var(--inkMuted);font-weight:650;}
+    .listObjBadge{
+      align-self:flex-start;
+      font-size:10px;font-weight:850;
+      padding:5px 8px;border-radius:999px;
+      background:rgba(0,0,0,.06);color:rgba(11,16,34,.75);
+      border:1px solid rgba(0,0,0,.06);white-space:nowrap;margin-top:4px;
+    }
+    .listObjBadge.done{
+      background:rgba(0,0,255,.10);
+      border-color:rgba(0,0,255,.20);color:#00008b;
+    }
 
     .ideaTabs{display:flex;gap:10px;margin-bottom:12px;}
     .ideaTab{
@@ -400,8 +457,10 @@
       border-color:rgba(35,199,182,.30);color:#0a3a34;
     }
 
-    #map{height:100%;width:100%;}
+    #map{height:100%;width:100%;position:relative;z-index:1;}
     .leaflet-container{background:#f6f7fb;}
+    .leaflet-pane,.leaflet-map-pane{z-index:1 !important;}
+    .leaflet-top,.leaflet-bottom{z-index:2 !important;}
 
     .profileWrap{
       height:100%;overflow:auto;
@@ -432,7 +491,7 @@
     }
     .userAvatar{
       width:48px;height:48px;border-radius:50%;
-      background:linear-gradient(135deg,var(--cta),var(--cta2));
+      background:linear-gradient(135deg,#0000FF,#4444ff);
       display:flex;align-items:center;justify-content:center;
       font-size:20px;font-weight:900;color:#fff;
       flex:0 0 auto;overflow:hidden;
@@ -441,14 +500,14 @@
     .userName{font-size:14px;font-weight:900;color:var(--ink);}
     .userEmail{font-size:12px;color:rgba(11,16,34,.55);font-weight:700;margin-top:3px;}
     .btnSignOut{
-      margin-left:auto;
-      border:1.5px solid rgba(11,16,34,.12);
-      background:#fff;border-radius:12px;
-      padding:9px 12px;font-size:12px;
-      font-weight:800;color:rgba(11,16,34,.65);
-      cursor:pointer;white-space:nowrap;
+      width:100%;
+      border:1.5px solid rgba(185,28,28,.30);
+      background:#fff;border-radius:14px;
+      padding:13px;font-size:14px;
+      font-weight:800;color:#b91c1c;
+      cursor:pointer;margin-top:16px;
     }
-    .btnSignOut:active{background:#f5f5f5;}
+    .btnSignOut:active{background:#fff5f5;}
 
     .list{
       background:#fff;border-radius:18px;
@@ -467,7 +526,7 @@
     .cost{font-weight:950;color:rgba(11,16,34,.78);font-size:13px;white-space:nowrap;}
 
     /* DETALLE */
-    .detail{height:100%;background:#123d1f;display:flex;padding:14px;}
+    .detail{height:100%;background:#000;display:flex;padding:14px;}
     .detailShell{
       flex:1;border-radius:22px;overflow:hidden;
       box-shadow:var(--shadow);position:relative;background:#000;
@@ -678,42 +737,15 @@
     .dot{width:8px;height:8px;border-radius:999px;background:rgba(11,16,34,.18);}
     .dot.active{background:rgba(11,16,34,.75);}
 
-    /* COVER GRID */
-    .coverGrid{
-      display:grid;grid-template-columns:1fr 1fr 1fr;
-      gap:10px;margin-top:10px;margin-bottom:10px;
-    }
-    .coverOpt{
-      border-radius:14px;border:2px solid rgba(0,0,0,.10);overflow:hidden;
-      cursor:pointer;background:#f0f0f0;box-shadow:var(--shadow2);
-      transition:transform .12s ease,border-color .12s ease;position:relative;
-    }
-    .coverOpt:active{transform:translateY(1px)}
-    .coverOpt img{width:100%;height:78px;object-fit:cover;display:block;}
-    .coverOpt.selected{border-color:rgba(35,199,182,.85);}
-    .coverOpt .cap{padding:6px 8px;font-size:11px;font-weight:900;color:rgba(11,16,34,.70);}
-    .coverSkeleton{
-      width:100%;height:78px;
-      background:linear-gradient(90deg,#e8e8e8 25%,#f5f5f5 50%,#e8e8e8 75%);
-      background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:12px 12px 0 0;
-    }
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-    .pexelsCredit{font-size:10px;color:rgba(11,16,34,.40);font-weight:700;text-align:right;padding:2px 2px 6px;}
-    .pexelsCredit a{color:rgba(11,16,34,.55);text-decoration:none;}
-    .apiNotice{
-      background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.40);
-      border-radius:12px;padding:10px 12px;font-size:12px;
-      color:rgba(11,16,34,.75);font-weight:700;margin-bottom:10px;
-    }
-    .apiNotice a{color:#0b1022;text-decoration:underline;}
+    .pexelsCredit{display:none;}
+    .apiNotice{display:none;}
 
     /* btn la lista */
     .btn{
       width:100%;border:none;border-radius:999px;padding:16px;
       font-size:16px;font-weight:750;
-      background:linear-gradient(180deg,var(--cta),var(--cta2));
-      color:#062a26;cursor:pointer;
+      background:#0000FF;
+      color:#fff;cursor:pointer;
     }
     .btn:active{transform:translateY(1px)}
   </style>
@@ -851,13 +883,19 @@
             <button class="tab active" data-cat="Todos">Todos</button>
             <button class="tab" data-cat="Viajes">Viajes</button>
             <button class="tab" data-cat="Experiencias">Experiencias</button>
+            <button class="tab" data-cat="Familia">Familia</button>
+            <button class="tab" data-cat="Trabajo">Trabajo</button>
           </div>
-          <div style="padding:0 16px 12px;">
-            <button class="btn" id="addWizardBtn">Añadir objetivo</button>
+          <div style="padding:0 16px 12px;display:flex;gap:10px;align-items:center;">
+            <button class="btn" id="addWizardBtn" style="flex:1;">Añadir objetivo</button>
+            <button class="viewToggleBtn" id="viewToggleBtn" title="Cambiar vista">☰</button>
           </div>
         </div>
 
-        <div class="content" id="view-home"><div class="carousel" id="carousel"></div></div>
+        <div class="content" id="view-home">
+          <div class="carousel" id="carousel"></div>
+          <div class="listView" id="listViewContainer"></div>
+        </div>
         <div class="content" id="view-compass" style="display:none;"><div id="map"></div></div>
         <div class="content" id="view-profile" style="display:none;">
           <div class="profileWrap">
@@ -868,7 +906,6 @@
                 <div class="userName" id="userName">—</div>
                 <div class="userEmail" id="userEmail">—</div>
               </div>
-              <button class="btnSignOut" id="signOutBtn">Cerrar sesión</button>
             </div>
 
             <div class="sectionTitle">Resumen</div>
@@ -882,6 +919,9 @@
             <div class="list" id="listPend"></div>
             <div class="sectionTitle" style="margin-top:14px;">Cumplidos</div>
             <div class="list" id="listDone"></div>
+
+            <!-- Cerrar sesión al final -->
+            <button class="btnSignOut" id="signOutBtn">Cerrar sesión</button>
           </div>
         </div>
 
@@ -989,20 +1029,13 @@
               </div>
 
               <div class="wizardStep" data-step="4">
-                <div class="smallNote">Paso 5 · Foto</div>
+                <div class="smallNote">Paso 5 · Foto de portada</div>
                 <div class="field">
-                  <label>Buscar imágenes (Pexels)</label>
-                  <div style="display:flex;gap:8px;">
-                    <input id="wSearchQuery" type="text" placeholder="Ej: aurora boreal noruega" style="flex:1;" />
-                    <button type="button" id="wSearchBtn" style="border:none;border-radius:14px;padding:12px 14px;background:#0b1022;color:#fff;font-weight:900;cursor:pointer;font-size:13px;">Buscar</button>
-                  </div>
+                  <label>URL de imagen</label>
+                  <input id="wImgUrl" type="url" placeholder="https://…" />
                 </div>
-                <div id="pexelsApiNotice" class="apiNotice" style="display:none;">⚠️ Añade tu API key de <a href="https://www.pexels.com/api/" target="_blank">Pexels (gratis)</a> para activar la búsqueda.</div>
-                <div class="coverGrid" id="coverGrid"></div>
-                <div class="pexelsCredit" id="pexelsCredit" style="display:none;">Fotos de <a href="https://www.pexels.com" target="_blank">Pexels</a></div>
-                <div class="field" style="margin-top:8px;"><label>O pega una URL directamente</label><input id="wImgUrl" type="url" placeholder="https://…" /></div>
                 <div class="field">
-                  <label>Fotos del móvil (local)</label>
+                  <label>O sube fotos del móvil (la primera será portada)</label>
                   <div class="fileRow"><button type="button" id="wPickLocalBtn">Añadir fotos</button><span id="wLocalCount">0 seleccionadas</span></div>
                   <input class="hiddenInput" id="wLocalFiles" type="file" accept="image/*" multiple />
                 </div>
@@ -1065,40 +1098,6 @@
 </div><!-- /frame -->
 
 <script>
-/* ================================================================
-   PEXELS API
-================================================================ */
-const PEXELS_API_KEY = "TU_API_KEY_AQUI";
-
-async function fetchPexelsImages(query, perPage){
-  perPage = perPage || 3;
-  const hasKey = PEXELS_API_KEY && PEXELS_API_KEY !== "TU_API_KEY_AQUI";
-  if(!hasKey) return { photos: getFallbackImages(query), hasKey: false };
-  try{
-    const res = await fetch(
-      "https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=" + perPage + "&orientation=landscape",
-      { headers: { "Authorization": PEXELS_API_KEY } }
-    );
-    if(!res.ok) throw new Error("pexels " + res.status);
-    const data = await res.json();
-    if(!data.photos || !data.photos.length) return { photos: getFallbackImages(query), hasKey: true };
-    return {
-      photos: data.photos.map(p => ({ url: p.src.large2x || p.src.large, thumb: p.src.medium, photographer: p.photographer })),
-      hasKey: true
-    };
-  }catch(e){
-    return { photos: getFallbackImages(query), hasKey: false };
-  }
-}
-
-function getFallbackImages(query){
-  return [0,1,2].map(i => ({
-    url: "https://picsum.photos/seed/" + encodeURIComponent(query + i) + "/800/500",
-    thumb: "https://picsum.photos/seed/" + encodeURIComponent(query + i) + "/400/250",
-    photographer: "Lorem Picsum"
-  }));
-}
-
 /* ================================================================
    STORAGE (por usuario — clave incluye uid)
 ================================================================ */
@@ -1389,12 +1388,16 @@ $$(".navBtn").forEach(btn => btn.addEventListener("click", () => showView(btn.da
    HOME
 ================================================================ */
 const carousel = $("#carousel");
+const listViewContainer = $("#listViewContainer");
 let currentCat = "Todos";
+let viewMode = "carousel"; // "carousel" | "list"
 
 function renderHome(cat){
   cat = cat || "Todos";
   currentCat = cat;
   const list = objetivos.filter(o => cat === "Todos" || o.cat === cat);
+
+  // Carrusel
   carousel.innerHTML = list.map(o =>
     '<article class="objCard ' + (o.done?"done":"") + '" data-id="' + o.id + '">'
     + '<div class="objImg" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
@@ -1404,15 +1407,53 @@ function renderHome(cat){
     + '</div><div class="badge ' + (o.done?"done":"") + '">' + (o.done?"Cumplido":o.cat) + '</div></div></article>'
   ).join("");
   carousel.scrollTo({left:0,behavior:"auto"});
+
+  // Vista lista
+  listViewContainer.innerHTML = list.map(o =>
+    '<div class="listObjCard ' + (o.done?"done":"") + '" data-id="' + o.id + '">'
+    + '<div class="listObjImg" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
+    + '<div class="listObjBody">'
+    + '<div class="listObjTitle">' + escapeHTML(o.titulo) + '</div>'
+    + '<div class="listObjMeta">' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.place ? " · " + escapeHTML(o.place) : "") + '</div>'
+    + '<div class="listObjBadge ' + (o.done?"done":"") + '">' + (o.done?"Cumplido":"Pendiente") + '</div>'
+    + '</div></div>'
+  ).join("") || '<div style="padding:24px 0;text-align:center;color:rgba(11,16,34,.40);font-size:13px;font-weight:700;">No hay objetivos aquí todavía.</div>';
+
+  applyViewMode();
 }
+
+function applyViewMode(){
+  const btn = $("#viewToggleBtn");
+  if(viewMode === "carousel"){
+    carousel.classList.remove("hidden");
+    listViewContainer.classList.remove("active");
+    if(btn) btn.textContent = "☰";
+  } else {
+    carousel.classList.add("hidden");
+    listViewContainer.classList.add("active");
+    if(btn) btn.textContent = "⊟";
+  }
+}
+
+// Botón cambio de vista
+$("#viewToggleBtn").addEventListener("click", () => {
+  viewMode = (viewMode === "carousel") ? "list" : "carousel";
+  applyViewMode();
+});
 
 $$(".tab").forEach(t => t.addEventListener("click", () => {
   $$(".tab").forEach(x => x.classList.remove("active"));
   t.classList.add("active");
   renderHome(t.dataset.cat);
 }));
+
 carousel.addEventListener("click", e => {
   const card = e.target.closest(".objCard");
+  if(card) openDetail(Number(card.dataset.id));
+});
+
+listViewContainer.addEventListener("click", e => {
+  const card = e.target.closest(".listObjCard");
   if(card) openDetail(Number(card.dataset.id));
 });
 
@@ -1792,7 +1833,7 @@ document.addEventListener("click", e => {
 /* ================================================================
    WIZARD
 ================================================================ */
-let wStep=0, wLocalImgs=[], wCoverChoice=null, wFetchedImages=[];
+let wStep=0, wLocalImgs=[];
 
 function wizardStepEls(){ return Array.from($$(".wizardStep")); }
 
@@ -1804,77 +1845,18 @@ function setWizardStep(n){
   $("#wizardDots").innerHTML = steps.map((_,i) => '<div class="dot '+(i===wStep?"active":"")+'"></div>').join("");
   $("#wPrev").style.visibility = wStep===0 ? "hidden" : "visible";
   $("#wNext").textContent = wStep===steps.length-1 ? "Crear" : "Siguiente";
-  if(wStep===4){
-    const q = ($("#wTitle").value||"").trim();
-    if(q){ $("#wSearchQuery").value=q; triggerImageSearch(q); }
-    else checkApiKeyNotice();
-  }
 }
 
 function resetWizard(){
-  ["wTitle","wCost","wDesc","wPlace","wLat","wLng","wImgUrl","wSearchQuery"].forEach(id => {
+  ["wTitle","wCost","wDesc","wPlace","wLat","wLng","wImgUrl"].forEach(id => {
     const el = $("#"+id); if(el) el.value="";
   });
   $("#wCat").value = "Viajes";
-  wLocalImgs=[]; wCoverChoice=null; wFetchedImages=[];
+  wLocalImgs=[];
   $("#wLocalCount").textContent = "0 seleccionadas";
   $("#wLocalFiles").value = "";
-  $("#coverGrid").innerHTML = "";
-  $("#pexelsCredit").style.display = "none";
-  $("#pexelsApiNotice").style.display = "none";
   setWizardStep(0);
 }
-
-function checkApiKeyNotice(){
-  const hasKey = PEXELS_API_KEY && PEXELS_API_KEY !== "TU_API_KEY_AQUI";
-  $("#pexelsApiNotice").style.display = hasKey ? "none" : "block";
-}
-function renderCoverLoading(){
-  $("#coverGrid").innerHTML = [0,1,2].map(() =>
-    '<div class="coverOpt"><div class="coverSkeleton"></div><div class="cap">Buscando…</div></div>'
-  ).join("");
-  $("#pexelsCredit").style.display = "none";
-}
-function renderCoverResults(photos, hasKey){
-  wFetchedImages = photos;
-  if(!wCoverChoice && photos.length) wCoverChoice = photos[0].url;
-  if(!photos.length){
-    $("#coverGrid").innerHTML = '<div class="smallNote" style="grid-column:1/-1">Sin resultados. Prueba otra búsqueda.</div>';
-    $("#pexelsCredit").style.display = "none";
-    return;
-  }
-  $("#coverGrid").innerHTML = photos.map((img,idx) =>
-    '<div class="coverOpt '+(img.url===wCoverChoice?"selected":"")+'" data-cover-url="'+escapeHTML(img.url)+'">'
-    +'<img src="'+escapeHTML(img.thumb)+'" alt="Portada '+(idx+1)+'" loading="lazy">'
-    +'<div class="cap">Opción '+(idx+1)+'</div></div>'
-  ).join("");
-  $("#pexelsCredit").style.display = hasKey ? "block" : "none";
-}
-async function triggerImageSearch(query){
-  if(!query) return;
-  checkApiKeyNotice();
-  renderCoverLoading();
-  const result = await fetchPexelsImages(query, 3);
-  wCoverChoice = null;
-  renderCoverResults(result.photos, result.hasKey);
-}
-
-$("#wSearchBtn").addEventListener("click", () => {
-  const q = $("#wSearchQuery").value.trim();
-  if(!q){ alert("Escribe algo para buscar 🙂"); return; }
-  triggerImageSearch(q);
-});
-$("#wSearchQuery").addEventListener("keydown", e => {
-  if(e.key==="Enter"){ e.preventDefault(); const q=$("#wSearchQuery").value.trim(); if(q) triggerImageSearch(q); }
-});
-document.addEventListener("click", e => {
-  const opt = e.target.closest(".coverOpt");
-  if(!opt) return;
-  const url = opt.dataset.coverUrl;
-  if(!url) return;
-  wCoverChoice = url;
-  $$(".coverOpt").forEach(o => o.classList.toggle("selected", o.dataset.coverUrl===url));
-});
 
 function openWizard(prefill){
   prefill = prefill||{};
@@ -1920,15 +1902,13 @@ $("#wNext").addEventListener("click", () => {
   let imgs = [];
   if(wLocalImgs.length){
     imgs.push(wLocalImgs[0]);
-  } else {
-    const manual = ($("#wImgUrl").value||"").trim();
-    if(manual) imgs.push(manual);
-    else if(wCoverChoice) imgs.push(wCoverChoice);
+    if(wLocalImgs.length>1) imgs.push(...wLocalImgs.slice(1));
   }
-  if(wLocalImgs.length>1) imgs.push(...wLocalImgs.slice(1));
+  const manual = ($("#wImgUrl").value||"").trim();
+  if(manual) imgs.push(manual);
   imgs = [...new Set(imgs)].filter(Boolean);
 
-  if(!imgs.length){ alert("Añade al menos una imagen: búsqueda, URL o foto del móvil."); return; }
+  if(!imgs.length){ alert("Añade al menos una imagen: URL o foto del móvil."); return; }
 
   const nextId = objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1;
   objetivos.unshift({id:nextId,titulo,cat,coste,done:false,desc,imgs,place,lat,lng});
