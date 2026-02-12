@@ -737,10 +737,134 @@
     .dot{width:8px;height:8px;border-radius:999px;background:rgba(11,16,34,.18);}
     .dot.active{background:rgba(11,16,34,.75);}
 
-    .pexelsCredit{display:none;}
-    .apiNotice{display:none;}
+    /* MAPA — botón volver */
+    .mapTopBar{
+      position:absolute;
+      top:calc(env(safe-area-inset-top,0px) + 12px);
+      left:12px;
+      z-index:10;
+    }
+    .mapBackBtn{
+      display:flex;align-items:center;gap:8px;
+      background:#fff;border:none;border-radius:14px;
+      padding:10px 14px;font-size:13px;font-weight:800;
+      color:var(--ink);cursor:pointer;
+      box-shadow:0 4px 16px rgba(0,0,0,.18);
+    }
+    .mapBackBtn:active{transform:translateY(1px);}
 
-    /* btn la lista */
+    /* SOCIAL — seguidores/seguidos */
+    .socialGrid{
+      display:grid;grid-template-columns:1fr 1fr;
+      gap:12px;margin-bottom:12px;
+    }
+    .socialCard{
+      background:#fff;border-radius:18px;
+      border:1px solid rgba(0,0,0,.06);
+      box-shadow:var(--shadow2);
+      padding:14px;text-align:center;cursor:pointer;
+    }
+    .socialCard:active{transform:translateY(1px);}
+    .socialCard .sNum{font-size:26px;font-weight:950;color:#0000FF;letter-spacing:-.5px;}
+    .socialCard .sLbl{font-size:12px;color:rgba(11,16,34,.55);font-weight:800;margin-top:4px;}
+
+    /* Modal perfil de usuario */
+    .profileEditAvatar{
+      width:80px;height:80px;border-radius:50%;
+      background:linear-gradient(135deg,#0000FF,#4444ff);
+      display:flex;align-items:center;justify-content:center;
+      font-size:32px;font-weight:900;color:#fff;
+      margin:0 auto 16px;overflow:hidden;
+      cursor:pointer;position:relative;
+      border:3px solid rgba(0,0,255,.2);
+    }
+    .profileEditAvatar img{width:100%;height:100%;object-fit:cover;}
+    .profileEditAvatar .avatarOverlay{
+      position:absolute;inset:0;
+      background:rgba(0,0,0,.38);
+      display:flex;align-items:center;justify-content:center;
+      border-radius:50%;opacity:0;transition:opacity .15s;
+      font-size:22px;
+    }
+    .profileEditAvatar:hover .avatarOverlay{opacity:1;}
+    .userHandle{
+      font-size:13px;color:#0000FF;font-weight:800;
+      text-align:center;margin-bottom:16px;letter-spacing:.02em;
+    }
+
+    /* Vista comunidad */
+    .communityFeed{
+      height:100%;overflow-y:auto;
+      padding:6px 16px 92px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .feedCard{
+      background:#fff;border-radius:16px;
+      border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 4px 16px rgba(0,0,0,.08);
+      overflow:hidden;margin-bottom:14px;
+    }
+    .feedCardHero{
+      height:160px;background:center/cover no-repeat;
+    }
+    .feedCardBody{padding:12px;}
+    .feedCardAuthor{
+      display:flex;align-items:center;gap:8px;margin-bottom:8px;
+    }
+    .feedAvatar{
+      width:28px;height:28px;border-radius:50%;
+      background:linear-gradient(135deg,#0000FF,#4444ff);
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:900;color:#fff;flex:0 0 auto;overflow:hidden;
+    }
+    .feedAvatar img{width:100%;height:100%;object-fit:cover;}
+    .feedAuthorName{font-size:12px;font-weight:800;color:rgba(11,16,34,.55);}
+    .feedTitle{font-size:15px;font-weight:850;color:var(--ink);line-height:1.2;}
+    .feedMeta{font-size:12px;color:var(--inkMuted);font-weight:650;margin-top:4px;}
+
+    /* Modal buscar usuarios */
+    .searchUserInput{
+      width:100%;border-radius:14px;border:1.5px solid rgba(11,16,34,.12);
+      padding:13px 14px;font-size:15px;color:var(--ink);outline:none;
+      transition:border-color .15s;margin-bottom:14px;
+    }
+    .searchUserInput:focus{border-color:#0000FF;}
+    .userResult{
+      display:flex;align-items:center;gap:12px;
+      padding:12px;border-radius:14px;
+      background:#f6f7fb;margin-bottom:8px;
+    }
+    .userResultAvatar{
+      width:40px;height:40px;border-radius:50%;
+      background:linear-gradient(135deg,#0000FF,#4444ff);
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;font-weight:900;color:#fff;flex:0 0 auto;overflow:hidden;
+    }
+    .userResultAvatar img{width:100%;height:100%;object-fit:cover;}
+    .userResultInfo{flex:1;min-width:0;}
+    .userResultName{font-size:13px;font-weight:900;color:var(--ink);}
+    .userResultHandle{font-size:11px;color:#0000FF;font-weight:800;margin-top:2px;}
+    .btnFollow{
+      border:none;border-radius:12px;padding:9px 14px;
+      font-size:12px;font-weight:800;cursor:pointer;
+      background:#0000FF;color:#fff;flex:0 0 auto;
+    }
+    .btnFollow.following{
+      background:#f6f7fb;color:rgba(11,16,34,.65);
+      border:1px solid rgba(0,0,0,.12);
+    }
+    .btnFollow:active{transform:translateY(1px);}
+    .myCode{
+      background:rgba(0,0,255,.06);border:1px solid rgba(0,0,255,.15);
+      border-radius:14px;padding:12px 14px;margin-bottom:14px;
+      font-size:13px;color:var(--ink);font-weight:700;
+    }
+    .myCode strong{color:#0000FF;font-size:15px;letter-spacing:.04em;}
+    .copyCodeBtn{
+      display:inline-block;margin-top:6px;
+      background:none;border:none;cursor:pointer;
+      font-size:11px;font-weight:800;color:#0000FF;padding:0;
+    }
     .btn{
       width:100%;border:none;border-radius:999px;padding:16px;
       font-size:16px;font-weight:750;
@@ -885,8 +1009,9 @@
             <button class="tab" data-cat="Experiencias">Experiencias</button>
             <button class="tab" data-cat="Familia">Familia</button>
             <button class="tab" data-cat="Trabajo">Trabajo</button>
+            <button class="tab" data-cat="Comunidad">👥 Comunidad</button>
           </div>
-          <div style="padding:0 16px 12px;display:flex;gap:10px;align-items:center;">
+          <div id="homeActionsBar" style="padding:0 16px 12px;display:flex;gap:10px;align-items:center;">
             <button class="btn" id="addWizardBtn" style="flex:1;">Añadir objetivo</button>
             <button class="viewToggleBtn" id="viewToggleBtn" title="Cambiar vista">☰</button>
           </div>
@@ -895,8 +1020,16 @@
         <div class="content" id="view-home">
           <div class="carousel" id="carousel"></div>
           <div class="listView" id="listViewContainer"></div>
+          <div class="communityFeed" id="communityFeed" style="display:none;"></div>
         </div>
-        <div class="content" id="view-compass" style="display:none;"><div id="map"></div></div>
+        <div class="content" id="view-compass" style="display:none;">
+          <div style="position:relative;height:100%;">
+            <div id="map"></div>
+            <div class="mapTopBar">
+              <button class="mapBackBtn" id="mapBackBtn">← Inicio</button>
+            </div>
+          </div>
+        </div>
         <div class="content" id="view-profile" style="display:none;">
           <div class="profileWrap">
             <!-- User info card -->
@@ -905,6 +1038,19 @@
               <div>
                 <div class="userName" id="userName">—</div>
                 <div class="userEmail" id="userEmail">—</div>
+                <div style="font-size:11px;color:#0000FF;font-weight:800;margin-top:2px;" id="userHandleDisplay"></div>
+              </div>
+            </div>
+
+            <!-- Seguidores / Seguidos -->
+            <div class="socialGrid">
+              <div class="socialCard" id="followersCard">
+                <div class="sNum" id="followersCount">0</div>
+                <div class="sLbl">Seguidores</div>
+              </div>
+              <div class="socialCard" id="followingCard">
+                <div class="sNum" id="followingCount">0</div>
+                <div class="sLbl">Siguiendo</div>
               </div>
             </div>
 
@@ -946,6 +1092,7 @@
                     <div class="field"><label>Coste (€)</label><input id="fCost" type="number" min="0" step="1" placeholder="0" /></div>
                   </div>
                   <div class="switchRow"><span>¿Cumplido?</span><input id="fDone" type="checkbox" /></div>
+                  <div class="switchRow"><span>🌍 Objetivo público (visible para seguidores)</span><input id="fPublic" type="checkbox" checked /></div>
                   <div class="field"><label>Descripción</label><textarea id="fDesc" placeholder="Escriba el por qué…"></textarea></div>
                   <div class="field"><label>Imagen principal (URL)</label><input id="fImg0" type="url" placeholder="https://…" /></div>
                   <div class="inline">
@@ -1029,7 +1176,13 @@
               </div>
 
               <div class="wizardStep" data-step="4">
-                <div class="smallNote">Paso 5 · Foto de portada</div>
+                <div class="smallNote">Paso 5 · Visibilidad</div>
+                <div class="switchRow" style="margin-bottom:12px;"><span>🌍 Objetivo público (lo verán tus seguidores)</span><input id="wPublic" type="checkbox" checked /></div>
+                <div class="smallNote">Los objetivos privados solo los ves tú.</div>
+              </div>
+
+              <div class="wizardStep" data-step="5">
+                <div class="smallNote">Paso 6 · Foto de portada</div>
                 <div class="field">
                   <label>URL de imagen</label>
                   <input id="wImgUrl" type="url" placeholder="https://…" />
@@ -1045,6 +1198,67 @@
               <button class="ghost" id="wPrev">Atrás</button>
               <button class="primary" id="wNext">Siguiente</button>
             </div>
+          </div>
+        </div>
+
+        <!-- PERFIL EDIT MODAL -->
+        <div class="modalBack" id="profileEditBack">
+          <div class="modal">
+            <div class="modalHead"><strong>Mi perfil</strong><button class="close" id="profileEditClose">✕</button></div>
+            <div class="modalBody">
+              <!-- Avatar clickable -->
+              <div class="profileEditAvatar" id="peAvatar">
+                <span id="peAvatarInitial">?</span>
+                <div class="avatarOverlay">📷</div>
+              </div>
+              <input class="hiddenInput" id="peAvatarFile" type="file" accept="image/*" />
+              <div class="userHandle" id="peCodeDisplay"></div>
+
+              <div class="myCode">
+                <div style="font-size:11px;font-weight:800;color:rgba(11,16,34,.55);margin-bottom:4px;">TU CÓDIGO · Compártelo para que te encuentren</div>
+                <strong id="peCodeValue">—</strong><br>
+                <button class="copyCodeBtn" id="copyCodeBtn">📋 Copiar código</button>
+              </div>
+
+              <div class="form">
+                <div class="field">
+                  <label>Nombre de usuario</label>
+                  <input id="peUsername" type="text" placeholder="@tunombre (sin espacios)" />
+                </div>
+                <div class="field">
+                  <label>Correo electrónico</label>
+                  <input id="peEmail" type="email" disabled style="opacity:.6;" />
+                </div>
+              </div>
+            </div>
+            <div class="modalActions">
+              <button class="ghost" id="profileEditCancel">Cancelar</button>
+              <button class="primary" id="profileEditSave">Guardar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUSCAR USUARIOS MODAL -->
+        <div class="modalBack" id="searchUsersBack">
+          <div class="modal">
+            <div class="modalHead"><strong>Buscar usuarios</strong><button class="close" id="searchUsersClose">✕</button></div>
+            <div class="modalBody">
+              <div class="smallNote">Pega el código de otro usuario para encontrarlo y seguirle.</div>
+              <input class="searchUserInput" id="searchUserInput" type="text" placeholder="Ej: ABC123XY" />
+              <div id="searchUserResults"></div>
+            </div>
+            <div class="modalActions"><button class="primary" id="searchUsersClose2">Cerrar</button></div>
+          </div>
+        </div>
+
+        <!-- LISTA SEGUIDORES/SIGUIENDO MODAL -->
+        <div class="modalBack" id="socialListBack">
+          <div class="modal">
+            <div class="modalHead"><strong id="socialListTitle">Seguidores</strong><button class="close" id="socialListClose">✕</button></div>
+            <div class="modalBody">
+              <div class="miniList" id="socialListContent"></div>
+            </div>
+            <div class="modalActions"><button class="primary" id="socialListClose2">Cerrar</button></div>
           </div>
         </div>
 
@@ -1204,21 +1418,125 @@ function showAppScreen(user){
   showView("home");
 }
 
+/* ================================================================
+   SOCIAL PROFILE SYSTEM (localStorage)
+================================================================ */
+const PROFILES_KEY = "lalista_profiles_v1";
+
+function genCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for(let i=0;i<8;i++) c += chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+
+function loadAllProfiles(){
+  try{ return JSON.parse(localStorage.getItem(PROFILES_KEY)||"{}"); }
+  catch(e){ return {}; }
+}
+function saveAllProfiles(profiles){ localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); }
+
+function getMyProfile(){
+  if(!currentUid) return null;
+  const profiles = loadAllProfiles();
+  if(!profiles[currentUid]){
+    profiles[currentUid] = {
+      uid: currentUid,
+      username: "",
+      code: genCode(),
+      avatarData: "",
+      following: [],
+      followers: []
+    };
+    saveAllProfiles(profiles);
+  }
+  return profiles[currentUid];
+}
+
+function saveMyProfile(data){
+  if(!currentUid) return;
+  const profiles = loadAllProfiles();
+  profiles[currentUid] = { ...getMyProfile(), ...data };
+  saveAllProfiles(profiles);
+}
+
+function findUserByCode(code){
+  const profiles = loadAllProfiles();
+  return Object.values(profiles).find(p => p.code === code.trim().toUpperCase()) || null;
+}
+
+function followUser(targetUid){
+  const profiles = loadAllProfiles();
+  const me = getMyProfile();
+  if(!me || targetUid === currentUid) return;
+  if(!me.following.includes(targetUid)) me.following.push(targetUid);
+  profiles[currentUid] = me;
+  // Add me to target's followers
+  if(profiles[targetUid]){
+    if(!profiles[targetUid].followers) profiles[targetUid].followers = [];
+    if(!profiles[targetUid].followers.includes(currentUid))
+      profiles[targetUid].followers.push(currentUid);
+  }
+  saveAllProfiles(profiles);
+}
+
+function unfollowUser(targetUid){
+  const profiles = loadAllProfiles();
+  const me = getMyProfile();
+  if(!me) return;
+  me.following = me.following.filter(id => id !== targetUid);
+  profiles[currentUid] = me;
+  if(profiles[targetUid]){
+    profiles[targetUid].followers = (profiles[targetUid].followers||[]).filter(id => id !== currentUid);
+  }
+  saveAllProfiles(profiles);
+}
+
+function isFollowing(targetUid){
+  const me = getMyProfile();
+  return me ? me.following.includes(targetUid) : false;
+}
+
+function getPublicObjectivesOf(uid){
+  try{
+    const raw = localStorage.getItem(BASE_KEY + uid);
+    if(!raw) return [];
+    const d = JSON.parse(raw);
+    return Array.isArray(d) ? d.filter(o => o.isPublic !== false) : [];
+  }catch(e){ return []; }
+}
+
+/* ================================================================
+   updateUserUI — now uses social profile
+================================================================ */
 function updateUserUI(user){
   if(!user) return;
+  const profile = getMyProfile();
+
   const nameEl   = $("#userName");
   const emailEl  = $("#userEmail");
   const avatarEl = $("#userAvatar");
-  if(nameEl)  nameEl.textContent  = user.displayName || "Sin nombre";
+  const handleEl = $("#userHandleDisplay");
+
+  if(nameEl)  nameEl.textContent  = profile?.username || user.displayName || "Sin nombre";
   if(emailEl) emailEl.textContent = user.email || "";
+  if(handleEl) handleEl.textContent = profile?.username ? "@"+profile.username : "";
+
+  const avatarSrc = profile?.avatarData || user.photoURL || "";
   if(avatarEl){
-    if(user.photoURL){
-      avatarEl.innerHTML = '<img src="' + user.photoURL + '" alt="avatar">';
+    if(avatarSrc){
+      avatarEl.innerHTML = '<img src="' + avatarSrc + '" alt="avatar">';
     } else {
-      const initial = (user.displayName || user.email || "?")[0].toUpperCase();
+      const initial = (profile?.username || user.displayName || user.email || "?")[0].toUpperCase();
       avatarEl.textContent = initial;
     }
   }
+
+  // Social counts
+  const followersEl = $("#followersCount");
+  const followingEl = $("#followingCount");
+  if(followersEl) followersEl.textContent = (profile?.followers||[]).length;
+  if(followingEl) followingEl.textContent = (profile?.following||[]).length;
 }
 
 function setAuthLoading(on){
@@ -1350,6 +1668,7 @@ const homeHeader = $("#homeHeader");
 const viewHome    = $("#view-home");
 const viewCompass = $("#view-compass");
 const viewProfile = $("#view-profile");
+let currentView = "home";
 
 function showOnly(view){
   viewHome.style.display    = view === "home"    ? "block" : "none";
@@ -1362,6 +1681,7 @@ function setNavActive(which){
   if(b) b.classList.add("active");
 }
 function showView(which){
+  currentView = which;
   setNavActive(which);
   if(which === "home"){
     pageTitle.textContent = "Mis objetivos";
@@ -1378,23 +1698,50 @@ function showView(which){
     homeHeader.style.display = "none";
     showOnly("profile");
     renderProfile();
-    // actualizar card de usuario
     if(window._fbAuth && window._fbAuth.currentUser) updateUserUI(window._fbAuth.currentUser);
   }
 }
 $$(".navBtn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.nav)));
+
+// ⚙️ context-aware: home → ajustes objetivos, perfil → editar perfil
+$("#gearBtn").addEventListener("click", () => {
+  if(currentView === "profile"){
+    openProfileEdit();
+  } else {
+    openSettings();
+  }
+});
+
+// Mapa — botón volver
+$("#mapBackBtn").addEventListener("click", () => showView("home"));
 
 /* ================================================================
    HOME
 ================================================================ */
 const carousel = $("#carousel");
 const listViewContainer = $("#listViewContainer");
+const communityFeed = $("#communityFeed");
 let currentCat = "Todos";
 let viewMode = "carousel"; // "carousel" | "list"
 
 function renderHome(cat){
   cat = cat || "Todos";
   currentCat = cat;
+
+  if(cat === "Comunidad"){
+    // Hide regular views, show community feed
+    carousel.classList.add("hidden");
+    listViewContainer.classList.remove("active");
+    communityFeed.style.display = "block";
+    $("#homeActionsBar").style.display = "none";
+    renderCommunityFeed();
+    return;
+  }
+
+  // Normal view
+  communityFeed.style.display = "none";
+  $("#homeActionsBar").style.display = "flex";
+
   const list = objetivos.filter(o => cat === "Todos" || o.cat === cat);
 
   // Carrusel
@@ -1420,6 +1767,55 @@ function renderHome(cat){
   ).join("") || '<div style="padding:24px 0;text-align:center;color:rgba(11,16,34,.40);font-size:13px;font-weight:700;">No hay objetivos aquí todavía.</div>';
 
   applyViewMode();
+}
+
+function renderCommunityFeed(){
+  const me = getMyProfile();
+  const following = me ? me.following : [];
+
+  if(!following.length){
+    communityFeed.innerHTML = '<div style="padding:40px 16px;text-align:center;">'
+      + '<div style="font-size:40px;margin-bottom:12px;">👥</div>'
+      + '<div style="font-size:15px;font-weight:800;color:var(--ink);margin-bottom:8px;">Aún no sigues a nadie</div>'
+      + '<div style="font-size:13px;color:rgba(11,16,34,.55);font-weight:700;">Busca usuarios con el 🔍 y síguelos para ver sus objetivos públicos aquí.</div>'
+      + '</div>';
+    return;
+  }
+
+  const profiles = loadAllProfiles();
+  let cards = [];
+  following.forEach(uid => {
+    const profile = profiles[uid];
+    if(!profile) return;
+    const objs = getPublicObjectivesOf(uid);
+    objs.forEach(o => {
+      cards.push({ o, profile });
+    });
+  });
+
+  if(!cards.length){
+    communityFeed.innerHTML = '<div style="padding:40px 16px;text-align:center;color:rgba(11,16,34,.45);font-size:13px;font-weight:700;">Las personas que sigues aún no tienen objetivos públicos.</div>';
+    return;
+  }
+
+  // Sort: cumplidos al fondo
+  cards.sort((a,b) => (a.o.done?1:0) - (b.o.done?1:0));
+
+  communityFeed.innerHTML = cards.map(({o, profile}) => {
+    const avatarHtml = profile.avatarData
+      ? '<img src="' + profile.avatarData + '" alt="av">'
+      : (profile.username||"?")[0].toUpperCase();
+    return '<div class="feedCard">'
+      + '<div class="feedCardHero" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
+      + '<div class="feedCardBody">'
+      + '<div class="feedCardAuthor">'
+      + '<div class="feedAvatar">' + avatarHtml + '</div>'
+      + '<span class="feedAuthorName">@' + escapeHTML(profile.username||"usuario") + '</span>'
+      + '</div>'
+      + '<div class="feedTitle">' + escapeHTML(o.titulo) + '</div>'
+      + '<div class="feedMeta">' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.done?' · ✅ Cumplido':'') + '</div>'
+      + '</div></div>';
+  }).join("");
 }
 
 function applyViewMode(){
@@ -1472,6 +1868,10 @@ function renderProfile(){
   $("#kpiCostTotal").textContent = eur(costTotal);
   $("#kpiCostPend").textContent  = eur(costPend);
 
+  const profile = getMyProfile();
+  $("#followersCount").textContent = (profile?.followers||[]).length;
+  $("#followingCount").textContent = (profile?.following||[]).length;
+
   $("#listPend").innerHTML = pend.length
     ? pend.map(o => '<div class="rowItem"><div class="rowLeft"><strong>' + escapeHTML(o.titulo) + '</strong><small>' + escapeHTML(o.cat) + (o.place?" · "+escapeHTML(o.place):"") + '</small></div><div class="cost">' + eur(o.coste||0) + '</div></div>').join("")
     : '<div class="rowItem"><div class="rowLeft"><strong>Todo hecho 😮‍💨</strong><small>No hay pendientes.</small></div><div class="cost">0€</div></div>';
@@ -1480,6 +1880,186 @@ function renderProfile(){
     ? done.map(o => '<div class="rowItem"><div class="rowLeft"><strong>' + escapeHTML(o.titulo) + '</strong><small>' + escapeHTML(o.cat) + (o.place?" · "+escapeHTML(o.place):"") + '</small></div><div class="cost">' + eur(o.coste||0) + '</div></div>').join("")
     : '<div class="rowItem"><div class="rowLeft"><strong>Aún ninguno cumplido</strong><small>Se empieza por uno.</small></div><div class="cost">' + eur(costDone) + '</div></div>';
 }
+
+/* ================================================================
+   PROFILE EDIT MODAL
+================================================================ */
+function openProfileEdit(){
+  const user = window._fbAuth?.currentUser;
+  const profile = getMyProfile();
+
+  // Fill avatar
+  const peAv = $("#peAvatar");
+  const avatarSrc = profile?.avatarData || user?.photoURL || "";
+  if(avatarSrc){
+    peAv.innerHTML = '<img src="' + avatarSrc + '" alt="av"><div class="avatarOverlay">📷</div>';
+  } else {
+    const ini = (profile?.username || user?.displayName || user?.email || "?")[0].toUpperCase();
+    peAv.innerHTML = '<span>' + ini + '</span><div class="avatarOverlay">📷</div>';
+  }
+
+  $("#peCodeDisplay").textContent = profile?.username ? "@"+profile.username : "";
+  $("#peCodeValue").textContent = profile?.code || "—";
+  $("#peUsername").value = profile?.username || "";
+  $("#peEmail").value = user?.email || "";
+
+  $("#profileEditBack").classList.add("show");
+}
+function closeProfileEdit(){ $("#profileEditBack").classList.remove("show"); }
+
+$("#profileEditClose").addEventListener("click", closeProfileEdit);
+$("#profileEditCancel").addEventListener("click", closeProfileEdit);
+$("#profileEditBack").addEventListener("click", e => { if(e.target===$("#profileEditBack")) closeProfileEdit(); });
+
+// Avatar click → file picker
+$("#peAvatar").addEventListener("click", () => $("#peAvatarFile").click());
+$("#peAvatarFile").addEventListener("change", async () => {
+  const f = $("#peAvatarFile").files?.[0];
+  if(!f) return;
+  try{
+    const data = await new Promise((res,rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    });
+    const peAv = $("#peAvatar");
+    peAv.innerHTML = '<img src="' + data + '" alt="av"><div class="avatarOverlay">📷</div>';
+    peAv.dataset.pendingAvatar = data;
+  }catch(e){ alert("No se pudo cargar la imagen."); }
+  finally{ $("#peAvatarFile").value = ""; }
+});
+
+// Copy code
+$("#copyCodeBtn").addEventListener("click", () => {
+  const code = $("#peCodeValue").textContent;
+  navigator.clipboard?.writeText(code).then(() => {
+    $("#copyCodeBtn").textContent = "✅ Copiado!";
+    setTimeout(() => { $("#copyCodeBtn").textContent = "📋 Copiar código"; }, 2000);
+  });
+});
+
+// Save profile
+$("#profileEditSave").addEventListener("click", async () => {
+  const username = $("#peUsername").value.trim().replace(/\s/g,"").replace(/^@/,"");
+  const pendingAvatar = $("#peAvatar").dataset.pendingAvatar || "";
+  const profile = getMyProfile();
+  const updates = { username };
+  if(pendingAvatar) updates.avatarData = pendingAvatar;
+  saveMyProfile(updates);
+  // Also update Firebase display name
+  if(username && window._fbAuth?.currentUser){
+    try{ await window._fbUpdateProfile({ displayName: username }); }catch(e){}
+  }
+  delete $("#peAvatar").dataset.pendingAvatar;
+  closeProfileEdit();
+  if(window._fbAuth?.currentUser) updateUserUI(window._fbAuth.currentUser);
+  renderProfile();
+});
+
+// Followers/Following cards click
+$("#followersCard").addEventListener("click", () => openSocialList("followers"));
+$("#followingCard").addEventListener("click", () => openSocialList("following"));
+
+function openSocialList(type){
+  const profile = getMyProfile();
+  const uids = type === "followers" ? (profile?.followers||[]) : (profile?.following||[]);
+  const profiles = loadAllProfiles();
+  $("#socialListTitle").textContent = type === "followers" ? "Seguidores" : "Siguiendo";
+  $("#socialListContent").innerHTML = uids.length
+    ? uids.map(uid => {
+        const p = profiles[uid];
+        if(!p) return "";
+        const avatarHtml = p.avatarData
+          ? '<img src="'+p.avatarData+'" alt="av">'
+          : (p.username||"?")[0].toUpperCase();
+        const isF = isFollowing(uid);
+        return '<div class="userResult">'
+          + '<div class="userResultAvatar">' + avatarHtml + '</div>'
+          + '<div class="userResultInfo">'
+          + '<div class="userResultName">' + escapeHTML(p.username||"Usuario") + '</div>'
+          + '<div class="userResultHandle">Código: ' + escapeHTML(p.code||"") + '</div>'
+          + '</div>'
+          + (uid !== currentUid ? '<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>' : '<span style="font-size:12px;color:rgba(11,16,34,.4);">Tú</span>')
+          + '</div>';
+      }).join("")
+    : '<div style="padding:20px;text-align:center;color:rgba(11,16,34,.45);font-size:13px;font-weight:700;">No hay nadie aquí todavía.</div>';
+  $("#socialListBack").classList.add("show");
+}
+function closeSocialList(){ $("#socialListBack").classList.remove("show"); }
+$("#socialListClose").addEventListener("click", closeSocialList);
+$("#socialListClose2").addEventListener("click", closeSocialList);
+$("#socialListBack").addEventListener("click", e => { if(e.target===$("#socialListBack")) closeSocialList(); });
+$("#socialListContent").addEventListener("click", e => {
+  const btn = e.target.closest("[data-follow-uid]");
+  if(!btn) return;
+  const uid = btn.dataset.followUid;
+  if(isFollowing(uid)){
+    unfollowUser(uid);
+    btn.textContent = "Seguir";
+    btn.classList.remove("following");
+  } else {
+    followUser(uid);
+    btn.textContent = "Siguiendo";
+    btn.classList.add("following");
+  }
+  renderProfile();
+});
+
+/* ================================================================
+   BUSCAR USUARIOS MODAL
+================================================================ */
+function openSearchUsers(){ $("#searchUsersBack").classList.add("show"); }
+function closeSearchUsers(){ $("#searchUsersBack").classList.remove("show"); }
+$("#searchUsersClose").addEventListener("click", closeSearchUsers);
+$("#searchUsersClose2").addEventListener("click", closeSearchUsers);
+$("#searchUsersBack").addEventListener("click", e => { if(e.target===$("#searchUsersBack")) closeSearchUsers(); });
+
+let searchDebounce = null;
+$("#searchUserInput").addEventListener("input", () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    const q = $("#searchUserInput").value.trim();
+    if(!q){ $("#searchUserResults").innerHTML = ""; return; }
+    const found = findUserByCode(q);
+    if(!found){
+      $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">No se encontró ningún usuario con ese código.</div>';
+      return;
+    }
+    if(found.uid === currentUid){
+      $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">Ese eres tú 😄</div>';
+      return;
+    }
+    const isF = isFollowing(found.uid);
+    const avatarHtml = found.avatarData
+      ? '<img src="'+found.avatarData+'" alt="av">'
+      : (found.username||"?")[0].toUpperCase();
+    $("#searchUserResults").innerHTML = '<div class="userResult">'
+      + '<div class="userResultAvatar">' + avatarHtml + '</div>'
+      + '<div class="userResultInfo">'
+      + '<div class="userResultName">' + escapeHTML(found.username||"Usuario") + '</div>'
+      + '<div class="userResultHandle">@' + escapeHTML(found.username||found.code) + '</div>'
+      + '</div>'
+      + '<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+found.uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
+      + '</div>';
+  }, 350);
+});
+
+$("#searchUserResults").addEventListener("click", e => {
+  const btn = e.target.closest("[data-follow-uid]");
+  if(!btn) return;
+  const uid = btn.dataset.followUid;
+  if(isFollowing(uid)){
+    unfollowUser(uid);
+    btn.textContent = "Seguir";
+    btn.classList.remove("following");
+  } else {
+    followUser(uid);
+    btn.textContent = "Siguiendo";
+    btn.classList.add("following");
+  }
+  renderProfile();
+});
 
 /* ================================================================
    LIGHTBOX
@@ -1640,14 +2220,13 @@ let editingId = null, pendingLocalImgs = [];
 
 function updateLocalCount(){ $("#localCount").textContent = pendingLocalImgs.length + " seleccionadas"; }
 
-function openSettings(){
-  editingId = null; pendingLocalImgs = []; updateLocalCount();
+function openSettings(){  editingId = null; pendingLocalImgs = []; updateLocalCount();
   showSettingsList();
   $("#settingsBack").classList.add("show");
 }
 function closeSettings(){ $("#settingsBack").classList.remove("show"); }
 
-$("#gearBtn").addEventListener("click", openSettings);
+// gearBtn is already handled context-aware above (home→settings, profile→profileEdit)
 $("#settingsClose").addEventListener("click", closeSettings);
 $("#btnCloseList").addEventListener("click", closeSettings);
 $("#settingsBack").addEventListener("click", e => { if(e.target===$("#settingsBack")) closeSettings(); });
@@ -1681,6 +2260,7 @@ function fillForm(o){
   $("#fCat").value   = o?.cat ?? "Viajes";
   $("#fCost").value  = o?.coste ?? 0;
   $("#fDone").checked = !!o?.done;
+  $("#fPublic").checked = o ? (o.isPublic !== false) : true;
   $("#fDesc").value  = o?.desc ?? "";
   const imgs = (o?.imgs && o.imgs.length) ? o.imgs : ["","","",""];
   $("#fImg0").value = imgs[0]?.startsWith("data:") ? "" : (imgs[0]||"");
@@ -1744,6 +2324,7 @@ $("#btnSave").addEventListener("click", () => {
   const cat    = $("#fCat").value;
   const coste  = Number($("#fCost").value||0);
   const done   = !!$("#fDone").checked;
+  const isPublic = !!$("#fPublic").checked;
   const desc   = $("#fDesc").value.trim();
   const place  = $("#fPlace").value.trim();
   const latRaw = $("#fLat").value.trim();
@@ -1769,10 +2350,10 @@ $("#btnSave").addEventListener("click", () => {
 
   if(editingId==null){
     const nextId = objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1;
-    objetivos.unshift({id:nextId,titulo,cat,coste,done,desc,imgs:finalImgs,place,lat,lng});
+    objetivos.unshift({id:nextId,titulo,cat,coste,done,desc,imgs:finalImgs,place,lat,lng,isPublic});
   } else {
     const idx = objetivos.findIndex(x => x.id===editingId);
-    if(idx>=0) objetivos[idx] = {...objetivos[idx],titulo,cat,coste,done,desc,imgs:finalImgs,place,lat,lng};
+    if(idx>=0) objetivos[idx] = {...objetivos[idx],titulo,cat,coste,done,desc,imgs:finalImgs,place,lat,lng,isPublic};
   }
   pendingLocalImgs=[]; updateLocalCount();
   refreshEverywhere(); showSettingsList();
@@ -1813,7 +2394,7 @@ function renderIdeas(cat){
   ).join("") || '<div class="smallNote">No hay ideas aquí todavía.</div>';
 }
 
-$("#searchBtn").addEventListener("click", () => openIdeas("Viajes"));
+$("#searchBtn").addEventListener("click", () => openSearchUsers());
 $("#ideasClose").addEventListener("click", closeIdeas);
 $("#ideasClose2").addEventListener("click", closeIdeas);
 $("#ideasBack").addEventListener("click", e => { if(e.target===$("#ideasBack")) closeIdeas(); });
@@ -1911,7 +2492,8 @@ $("#wNext").addEventListener("click", () => {
   if(!imgs.length){ alert("Añade al menos una imagen: URL o foto del móvil."); return; }
 
   const nextId = objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1;
-  objetivos.unshift({id:nextId,titulo,cat,coste,done:false,desc,imgs,place,lat,lng});
+  const isPublic = !!$("#wPublic").checked;
+  objetivos.unshift({id:nextId,titulo,cat,coste,done:false,desc,imgs,place,lat,lng,isPublic});
 
   refreshEverywhere();
   closeWizard();
