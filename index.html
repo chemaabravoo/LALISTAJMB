@@ -63,6 +63,15 @@
       return { uid: snap.docs[0].id, ...snap.docs[0].data() };
     };
 
+    window._fsSearchByUsername = async (username) => {
+      const term = username.toLowerCase().replace(/^@/,"").trim();
+      if(!term) return [];
+      // Search by exact username match first
+      const q = query(collection(db,"users"), where("usernameLower",">=",term), where("usernameLower","<=",term+"\uf8ff"));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    };
+
     window._fsGetUsersByUids = async (uids) => {
       if(!uids || !uids.length) return [];
       const results = [];
@@ -862,6 +871,7 @@
                 <div class="sLbl">Siguiendo</div>
               </div>
             </div>
+            <button class="btn" id="profileSearchUserBtn" style="margin-bottom:14px;background:#0b1022;">🔍 Buscar usuarios</button>
 
             <div class="sectionTitle">Resumen</div>
             <div class="kpiGrid">
@@ -1036,13 +1046,42 @@
           </div>
         </div>
 
-        <!-- BUSCAR USUARIOS MODAL -->
+        <!-- BUSCAR HOME MODAL (usuario + ideas) -->
+        <div class="modalBack" id="homeSearchBack">
+          <div class="modal" style="max-height:88vh;display:flex;flex-direction:column;">
+            <div class="modalHead"><strong>Buscar</strong><button class="close" id="homeSearchClose">✕</button></div>
+            <div class="modalBody" style="flex:1;overflow-y:auto;">
+              <!-- USER SEARCH SECTION -->
+              <div style="margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:900;color:rgba(11,16,34,.55);margin-bottom:8px;letter-spacing:.03em;">BUSCAR USUARIO</div>
+                <input class="searchUserInput" id="homeSearchUserInput" type="text" placeholder="Buscar por nombre de usuario…" style="margin-bottom:8px;" />
+                <div id="homeSearchUserResults"></div>
+              </div>
+              <!-- DIVIDER -->
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;height:1px;background:rgba(0,0,0,.08);"></div>
+                <span style="font-size:11px;font-weight:800;color:rgba(11,16,34,.35);">IDEAS DE OBJETIVOS</span>
+                <div style="flex:1;height:1px;background:rgba(0,0,0,.08);"></div>
+              </div>
+              <!-- IDEAS TABS & LIST -->
+              <div class="ideaTabs" id="homeIdeaTabs">
+                <button class="ideaTab active" data-home-idea-cat="Viajes">Viajes</button>
+                <button class="ideaTab" data-home-idea-cat="Familia">Familia</button>
+                <button class="ideaTab" data-home-idea-cat="Trabajo">Trabajo</button>
+              </div>
+              <div class="smallNote">Toca "Añadir" para añadirlo a tu lista.</div>
+              <div class="miniList" id="homeIdeasList"></div>
+            </div>
+            <div class="modalActions"><button class="primary" id="homeSearchClose2">Cerrar</button></div>
+          </div>
+        </div>
+
+        <!-- BUSCAR USUARIOS MODAL (perfil) -->
         <div class="modalBack" id="searchUsersBack">
           <div class="modal">
             <div class="modalHead"><strong>Buscar usuarios</strong><button class="close" id="searchUsersClose">✕</button></div>
             <div class="modalBody">
-              <div class="smallNote">Pega el código de otro usuario para encontrarlo y seguirle.</div>
-              <input class="searchUserInput" id="searchUserInput" type="text" placeholder="Ej: ABC123XY" />
+              <input class="searchUserInput" id="searchUserInput" type="text" placeholder="Buscar por nombre de usuario…" />
               <div id="searchUserResults"></div>
             </div>
             <div class="modalActions"><button class="primary" id="searchUsersClose2">Cerrar</button></div>
@@ -1222,6 +1261,7 @@ async function ensureFirestoreProfile(user){
       profile = {
         uid: user.uid,
         username: user.displayName || "",
+        usernameLower: (user.displayName||"").toLowerCase(),
         code,
         avatarData: user.photoURL || "",
         following: [],
@@ -1251,6 +1291,10 @@ async function saveMyProfile(data){
   if(!currentUid) return;
   const current = await getMyProfile() || {};
   const updated = { ...current, ...data };
+  // Save lowercase username for search queries
+  if(data.username !== undefined){
+    updated.usernameLower = (data.username||"").toLowerCase();
+  }
   profileCache[currentUid] = updated;
   await window._fsSetUser(currentUid, updated);
 }
@@ -1775,45 +1819,161 @@ $("#socialListContent").addEventListener("click", async e => {
 });
 
 /* ================================================================
-   BUSCAR USUARIOS MODAL
+   IDEAS CATALOGUE (usado en home search y wizard)
+================================================================ */
+const ideasCatalogo = {
+  Viajes:["Torre Eiffel","Museo del Louvre","Mont Saint-Michel","Costa Azul","Provenza","Coliseo de Roma","Venecia","Torre de Pisa","Costa Amalfitana","Florencia","Sagrada Familia","Londres y Big Ben","Berlín","Viena","Fiordos noruegos","Gran Cañón","Times Square","Golden Gate","Las Vegas","Yellowstone","Chichén Itzá","Machu Picchu","Cristo Redentor","Amazonas","Buenos Aires","Gran Muralla China","Tokio","Monte Fuji","Kioto (Fushimi Inari)","Shanghái","Bangkok","Taj Mahal","Burj Khalifa","Islas de Tailandia","Desierto de Dubái","Pirámides de Giza","Sahara","Marrakech","Safari Serengeti","Cataratas Victoria","Auroras en Islandia","Patagonia","Gran Barrera de Coral","Volcán activo","Alpes","Ruta 66","Transiberiano","Himalaya","Iglú de cristal","Avistamiento de ballenas","Maldivas","Bora Bora","Santorini","Bali","Hawái","Seychelles","Filipinas","Mauricio","Ibiza","Islas Feroe","Nueva York en Navidad","Dubái","Singapur","Hong Kong","Estambul","Praga","Ámsterdam","Budapest","Edimburgo","Chicago","Globo en Capadocia","Carnaval de Río","Oktoberfest","Año Nuevo en Sídney","Ruta gastronómica por Japón","Crucero Caribe","Ryokan en Japón","Viaje solo","5 continentes","50 países antes de los 50","Interrail","Vivir 6 meses fuera","Mochilero por Sudamérica","Nómada digital","Roadtrip 30 días","Camino de Santiago","Dormir en el desierto","7 maravillas modernas","10 Patrimonios UNESCO","Viaje con padres","Disney con hijos","Viaje sorpresa","Viaje épico de jubilación"],
+  Familia:["Tener mi primer hijo/a antes de los 35","Crear tradiciones familiares propias","Gran viaje familiar cada verano","Diseñar la casa de mis sueños","Llegar a la vejez rodeado de hijos y nietos","Comidas familiares todos los domingos","Cita mensual obligatoria con mi pareja","Renovar votos a los 10 años","Vivir un año en el extranjero en familia","Transmitir recetas familiares","Álbum físico familiar cada año","Crear fondo familiar de emergencia","Dejar herencia sólida","Celebrar todos los cumpleaños juntos","Gran reunión familiar cada 5 años","Cuidar de mis padres cuando lo necesiten","Viaje individual con cada hijo","Enseñar educación financiera a mis hijos","Construir negocio familiar","Superar juntos una crisis económica"],
+  Trabajo:["Conseguir primer ascenso antes de los 30","Alcanzar puesto directivo antes de los 40","Liderar equipo de más de 20 personas","Ser referente en mi sector","Cambiar de sector con éxito","Trabajar en empresa internacional","Lograr puesto 100% remoto","Negociar aumento del 20%","Superar 50.000€ anuales antes de los 35","Alcanzar 100.000€ anuales antes de los 45","Crear negocio propio antes de los 35","Lanzar producto digital rentable","Automatizar 50% de procesos","Abrir segunda línea de negocio","Delegar completamente la operativa","Monetizar un hobby","Construir marca personal sólida","Hablar en evento profesional","Independencia financiera antes de los 55","Jubilarme antes de la edad legal"]
+};
+
+/* ================================================================
+   HOME SEARCH MODAL (usuario + ideas)
+================================================================ */
+let homeIdeaCat = "Viajes";
+
+function openHomeSearch(){
+  $("#homeSearchUserInput").value = "";
+  $("#homeSearchUserResults").innerHTML = "";
+  renderHomeIdeas(homeIdeaCat);
+  $("#homeSearchBack").classList.add("show");
+}
+function closeHomeSearch(){ $("#homeSearchBack").classList.remove("show"); }
+
+$("#searchBtn").addEventListener("click", openHomeSearch);
+$("#homeSearchClose").addEventListener("click", closeHomeSearch);
+$("#homeSearchClose2").addEventListener("click", closeHomeSearch);
+$("#homeSearchBack").addEventListener("click", e => { if(e.target===$("#homeSearchBack")) closeHomeSearch(); });
+
+// Home ideas tabs
+$$("[data-home-idea-cat]").forEach(btn => btn.addEventListener("click", () => {
+  $$("[data-home-idea-cat]").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  homeIdeaCat = btn.dataset.homeIdeaCat;
+  renderHomeIdeas(homeIdeaCat);
+}));
+
+function renderHomeIdeas(cat){
+  const list = ideasCatalogo[cat]||[];
+  $("#homeIdeasList").innerHTML = list.map(t =>
+    '<div class="miniItem"><div class="miniText"><b>'+escapeHTML(t)+'</b><span>'+escapeHTML(cat)+'</span></div>'
+    +'<div class="tag" data-home-idea-add="1" data-idea-title="'+escapeHTML(t)+'" data-idea-cat="'+escapeHTML(cat)+'">Añadir</div></div>'
+  ).join("") || '<div class="smallNote">No hay ideas aquí todavía.</div>';
+}
+
+document.addEventListener("click", e => {
+  const add = e.target.closest("[data-home-idea-add]");
+  if(!add) return;
+  closeHomeSearch();
+  openWizard({titulo: add.dataset.ideaTitle||"", cat: add.dataset.ideaCat||"Viajes"});
+});
+
+// Home user search (by username)
+let homeUserSearchDebounce = null;
+$("#homeSearchUserInput").addEventListener("input", () => {
+  clearTimeout(homeUserSearchDebounce);
+  homeUserSearchDebounce = setTimeout(async () => {
+    const q = $("#homeSearchUserInput").value.trim().replace(/^@/,"");
+    if(!q){ $("#homeSearchUserResults").innerHTML=""; return; }
+    $("#homeSearchUserResults").innerHTML = '<div class="miniSpinner"></div>';
+    try{
+      const results = await window._fsSearchByUsername(q);
+      const filtered = results.filter(u => u.uid!==currentUid);
+      if(!filtered.length){
+        $("#homeSearchUserResults").innerHTML = '<div style="padding:8px 0;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">No se encontró ningún usuario.</div>';
+        return;
+      }
+      const myProfile = await getMyProfile();
+      const myFollowing = myProfile?.following || [];
+      $("#homeSearchUserResults").innerHTML = filtered.map(found => {
+        const isF = myFollowing.includes(found.uid);
+        const avatarHtml = found.avatarData
+          ? '<img src="'+found.avatarData+'" alt="av">'
+          : (found.username||"?")[0].toUpperCase();
+        return '<div class="userResult">'
+          +'<div class="userResultAvatar" style="cursor:pointer;" data-profile-uid="'+found.uid+'">'+avatarHtml+'</div>'
+          +'<div class="userResultInfo" data-profile-uid="'+found.uid+'">'
+          +'<div class="userResultName">'+escapeHTML(found.username||"Usuario")+'</div>'
+          +'<div class="userResultHandle">@'+escapeHTML(found.username||"")+'</div>'
+          +'</div>'
+          +'<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+found.uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
+          +'</div>';
+      }).join("");
+    }catch(e){
+      $("#homeSearchUserResults").innerHTML = '<div style="padding:8px 0;font-size:13px;color:#b91c1c;font-weight:700;">Error al buscar.</div>';
+    }
+  }, 350);
+});
+
+$("#homeSearchUserResults").addEventListener("click", async e => {
+  const profileEl = e.target.closest("[data-profile-uid]");
+  if(profileEl && !e.target.closest("[data-follow-uid]")){
+    const uid = profileEl.dataset.profileUid;
+    if(uid && uid!==currentUid){ closeHomeSearch(); openUserProfile(uid); return; }
+  }
+  const btn = e.target.closest("[data-follow-uid]");
+  if(!btn) return;
+  const uid = btn.dataset.followUid;
+  const following = await isFollowing(uid);
+  btn.disabled = true;
+  if(following){ await unfollowUser(uid); btn.textContent="Seguir"; btn.classList.remove("following"); }
+  else { await followUser(uid); btn.textContent="Siguiendo"; btn.classList.add("following"); }
+  btn.disabled = false;
+  await updateUserUI();
+});
+
+/* ================================================================
+   BUSCAR USUARIOS MODAL (desde perfil)
 ================================================================ */
 function openSearchUsers(){ $("#searchUserInput").value=""; $("#searchUserResults").innerHTML=""; $("#searchUsersBack").classList.add("show"); }
 function closeSearchUsers(){ $("#searchUsersBack").classList.remove("show"); }
 $("#searchUsersClose").addEventListener("click", closeSearchUsers);
 $("#searchUsersClose2").addEventListener("click", closeSearchUsers);
 $("#searchUsersBack").addEventListener("click", e => { if(e.target===$("#searchUsersBack")) closeSearchUsers(); });
-$("#searchBtn").addEventListener("click", openSearchUsers);
+// Profile view search button
+$("#profileSearchUserBtn").addEventListener("click", openSearchUsers);
 
 let searchDebounce = null;
 $("#searchUserInput").addEventListener("input", () => {
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(async () => {
-    const q = $("#searchUserInput").value.trim();
+    const q = $("#searchUserInput").value.trim().replace(/^@/,"");
     if(!q){ $("#searchUserResults").innerHTML=""; return; }
     $("#searchUserResults").innerHTML = '<div class="miniSpinner"></div>';
     try{
-      const found = await window._fsSearchByCode(q);
-      if(!found){
-        $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">No se encontró ningún usuario con ese código.</div>';
+      const results = await window._fsSearchByUsername(q);
+      const filtered = results.filter(u => u.uid!==currentUid);
+      if(!filtered.length){
+        if(q.length>=6){
+          // Also try code search as fallback
+          const byCode = await window._fsSearchByCode(q);
+          if(byCode && byCode.uid!==currentUid){
+            filtered.push(byCode);
+          }
+        }
+      }
+      if(!filtered.length){
+        $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">No se encontró ningún usuario.</div>';
         return;
       }
-      if(found.uid===currentUid){
-        $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">Ese eres tú 😄</div>';
-        return;
-      }
-      profileCache[found.uid] = found;
-      const isF = await isFollowing(found.uid);
-      const avatarHtml = found.avatarData
-        ? '<img src="'+found.avatarData+'" alt="av">'
-        : (found.username||"?")[0].toUpperCase();
-      $("#searchUserResults").innerHTML = '<div class="userResult">'
-        +'<div class="userResultAvatar" style="cursor:pointer;" data-profile-uid="'+found.uid+'">'+avatarHtml+'</div>'
-        +'<div class="userResultInfo" data-profile-uid="'+found.uid+'">'
-        +'<div class="userResultName">'+escapeHTML(found.username||"Usuario")+'</div>'
-        +'<div class="userResultHandle">@'+escapeHTML(found.username||found.code)+'</div>'
-        +'</div>'
-        +'<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+found.uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
-        +'</div>';
+      const myProfile = await getMyProfile();
+      const myFollowing = myProfile?.following || [];
+      profileCache[filtered[0].uid] = filtered[0];
+      $("#searchUserResults").innerHTML = filtered.map(found => {
+        profileCache[found.uid] = found;
+        const isF = myFollowing.includes(found.uid);
+        const avatarHtml = found.avatarData
+          ? '<img src="'+found.avatarData+'" alt="av">'
+          : (found.username||"?")[0].toUpperCase();
+        return '<div class="userResult">'
+          +'<div class="userResultAvatar" style="cursor:pointer;" data-profile-uid="'+found.uid+'">'+avatarHtml+'</div>'
+          +'<div class="userResultInfo" data-profile-uid="'+found.uid+'">'
+          +'<div class="userResultName">'+escapeHTML(found.username||"Usuario")+'</div>'
+          +'<div class="userResultHandle">@'+escapeHTML(found.username||found.code)+'</div>'
+          +'</div>'
+          +'<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+found.uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
+          +'</div>';
+      }).join("");
     }catch(e){
       $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:#b91c1c;font-weight:700;">Error al buscar. Inténtalo de nuevo.</div>';
     }
@@ -2015,17 +2175,35 @@ $("#copyCodeBtn").addEventListener("click", () => {
 
 $("#profileEditSave").addEventListener("click", async () => {
   const username = $("#peUsername").value.trim().replace(/\s/g,"").replace(/^@/,"");
-  const pendingAvatar = $("#peAvatar").dataset.pendingAvatar || "";
-  const updates = { username };
-  if(pendingAvatar) updates.avatarData = pendingAvatar;
-  await saveMyProfile(updates);
-  if(username && window._fbAuth?.currentUser){
-    try{ await window._fbUpdateProfile({ displayName: username }); }catch(e){}
+  if(!username){ alert("Escribe un nombre de usuario."); return; }
+
+  const saveBtn = $("#profileEditSave");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Guardando…";
+
+  try{
+    const pendingAvatar = $("#peAvatar").dataset.pendingAvatar || "";
+    const updates = { username };
+    if(pendingAvatar) updates.avatarData = pendingAvatar;
+    await saveMyProfile(updates);
+    if(window._fbAuth?.currentUser){
+      try{ await window._fbUpdateProfile({ displayName: username }); }catch(e){}
+    }
+    delete $("#peAvatar").dataset.pendingAvatar;
+    saveBtn.textContent = "✅ Guardado";
+    setTimeout(() => {
+      saveBtn.textContent = "Guardar";
+      saveBtn.disabled = false;
+      closeProfileEdit();
+    }, 800);
+    await updateUserUI();
+    if(currentView==="profile") renderProfile();
+  }catch(err){
+    console.error("Save profile error:", err);
+    alert("Error al guardar. Comprueba tu conexión.");
+    saveBtn.textContent = "Guardar";
+    saveBtn.disabled = false;
   }
-  delete $("#peAvatar").dataset.pendingAvatar;
-  closeProfileEdit();
-  await updateUserUI();
-  if(currentView==="profile") renderProfile();
 });
 
 /* ================================================================
@@ -2286,13 +2464,8 @@ $("#btnDelete").addEventListener("click", () => {
 });
 
 /* ================================================================
-   IDEAS
+   IDEAS MODAL (wizard flow)
 ================================================================ */
-const ideasCatalogo = {
-  Viajes:["Torre Eiffel","Museo del Louvre","Mont Saint-Michel","Costa Azul","Provenza","Coliseo de Roma","Venecia","Torre de Pisa","Costa Amalfitana","Florencia","Sagrada Familia","Londres y Big Ben","Berlín","Viena","Fiordos noruegos","Gran Cañón","Times Square","Golden Gate","Las Vegas","Yellowstone","Chichén Itzá","Machu Picchu","Cristo Redentor","Amazonas","Buenos Aires","Gran Muralla China","Tokio","Monte Fuji","Kioto (Fushimi Inari)","Shanghái","Bangkok","Taj Mahal","Burj Khalifa","Islas de Tailandia","Desierto de Dubái","Pirámides de Giza","Sahara","Marrakech","Safari Serengeti","Cataratas Victoria","Auroras en Islandia","Patagonia","Gran Barrera de Coral","Volcán activo","Alpes","Ruta 66","Transiberiano","Himalaya","Iglú de cristal","Avistamiento de ballenas","Maldivas","Bora Bora","Santorini","Bali","Hawái","Seychelles","Filipinas","Mauricio","Ibiza","Islas Feroe","Nueva York en Navidad","Dubái","Singapur","Hong Kong","Estambul","Praga","Ámsterdam","Budapest","Edimburgo","Chicago","Globo en Capadocia","Carnaval de Río","Oktoberfest","Año Nuevo en Sídney","Ruta gastronómica por Japón","Crucero Caribe","Ryokan en Japón","Viaje solo","5 continentes","50 países antes de los 50","Interrail","Vivir 6 meses fuera","Mochilero por Sudamérica","Nómada digital","Roadtrip 30 días","Camino de Santiago","Dormir en el desierto","7 maravillas modernas","10 Patrimonios UNESCO","Viaje con padres","Disney con hijos","Viaje sorpresa","Viaje épico de jubilación"],
-  Familia:["Tener mi primer hijo/a antes de los 35","Crear tradiciones familiares propias","Gran viaje familiar cada verano","Diseñar la casa de mis sueños","Llegar a la vejez rodeado de hijos y nietos","Comidas familiares todos los domingos","Cita mensual obligatoria con mi pareja","Renovar votos a los 10 años","Vivir un año en el extranjero en familia","Transmitir recetas familiares","Álbum físico familiar cada año","Crear fondo familiar de emergencia","Dejar herencia sólida","Celebrar todos los cumpleaños juntos","Gran reunión familiar cada 5 años","Cuidar de mis padres cuando lo necesiten","Viaje individual con cada hijo","Enseñar educación financiera a mis hijos","Construir negocio familiar","Superar juntos una crisis económica"],
-  Trabajo:["Conseguir primer ascenso antes de los 30","Alcanzar puesto directivo antes de los 40","Liderar equipo de más de 20 personas","Ser referente en mi sector","Cambiar de sector con éxito","Trabajar en empresa internacional","Lograr puesto 100% remoto","Negociar aumento del 20%","Superar 50.000€ anuales antes de los 35","Alcanzar 100.000€ anuales antes de los 45","Crear negocio propio antes de los 35","Lanzar producto digital rentable","Automatizar 50% de procesos","Abrir segunda línea de negocio","Delegar completamente la operativa","Monetizar un hobby","Construir marca personal sólida","Hablar en evento profesional","Independencia financiera antes de los 55","Jubilarme antes de la edad legal"]
-};
 
 function openIdeas(cat){
   cat = cat||"Viajes";
