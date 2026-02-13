@@ -5,25 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>La Lista</title>
 
-  <!-- 
-    FIRESTORE RULES — paste this in Firebase Console > Firestore > Rules:
-
-    rules_version = '2';
-    service cloud.firestore {
-      match /databases/{database}/documents {
-        match /users/{userId} {
-          allow read: if request.auth != null;
-          allow write: if request.auth != null && request.auth.uid == userId;
-        }
-        match /objectives/{userId}/items/{itemId} {
-          allow read: if request.auth != null && (
-            resource.data.isPublic == true || request.auth.uid == userId
-          );
-          allow write: if request.auth != null && request.auth.uid == userId;
-        }
-      }
-    }
-  -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -68,27 +49,11 @@
 
     window._fsGetUser = async (uid) => {
       const snap = await getDoc(doc(db,"users",uid));
-      if(!snap.exists()) return null;
-      const data = snap.data();
-      // Re-attach avatar from localStorage
-      const avatarData = localStorage.getItem("lalista_avatar_"+uid)||"";
-      return { ...data, avatarData };
+      return snap.exists() ? snap.data() : null;
     };
 
     window._fsSetUser = async (uid, data) => {
-      // avatarData can be a base64 string — Firestore has a 1MB doc limit.
-      // Strip it from Firestore and keep it only in localStorage.
-      const toSave = { ...data };
-      delete toSave.avatarData; // never save avatar to Firestore
-      await setDoc(doc(db,"users",uid), toSave, { merge: true });
-    };
-
-    // Avatar stored in localStorage only (too large for Firestore)
-    window._fsGetAvatarLocal = (uid) => {
-      try{ return localStorage.getItem("lalista_avatar_"+uid)||""; }catch(e){ return ""; }
-    };
-    window._fsSetAvatarLocal = (uid, data) => {
-      try{ localStorage.setItem("lalista_avatar_"+uid, data); }catch(e){}
+      await setDoc(doc(db,"users",uid), data, { merge: true });
     };
 
     window._fsSearchByCode = async (code) => {
@@ -113,10 +78,7 @@
       for(const uid of uids){
         try{
           const snap = await getDoc(doc(db,"users",uid));
-          if(snap.exists()){
-            const avatarData = localStorage.getItem("lalista_avatar_"+uid)||"";
-            results.push({ uid: snap.id, ...snap.data(), avatarData });
-          }
+          if(snap.exists()) results.push({ uid: snap.id, ...snap.data() });
         }catch(e){}
       }
       return results;
@@ -152,13 +114,6 @@
     window._fsDeleteObjective = async (uid, id) => {
       try{ await deleteDoc(doc(db,"objectives",uid,"items",String(id))); }catch(e){}
     };
-
-    // Test Firebase Auth is reachable
-    auth.authStateReady().then(() => {
-      console.log("Firebase Auth ready");
-    }).catch(err => {
-      console.error("Firebase Auth not ready:", err);
-    });
 
     window.dispatchEvent(new Event("firebaseReady"));
   </script>
@@ -1274,15 +1229,9 @@ waitFirebase(() => {
     if(user){
       currentUid = user.uid;
       objetivos = loadObjetivos();
-      // Show app immediately — do NOT block on Firestore
+      // Ensure user profile exists in Firestore
+      await ensureFirestoreProfile(user);
       showAppScreen(user);
-      // Load/create profile in background
-      ensureFirestoreProfile(user).then(() => {
-        updateUserUI();
-        if(currentView==="profile") renderProfile();
-      }).catch(err => {
-        console.warn("Profile init failed (non-fatal):", err?.code, err?.message);
-      });
     } else {
       currentUid = null;
       showAuthScreen();
@@ -1318,9 +1267,7 @@ async function ensureFirestoreProfile(user){
         following: [],
         followers: []
       };
-      // Save avatar locally if it's a URL (Google photo), not base64
-      if(profile.avatarData) window._fsSetAvatarLocal(user.uid, profile.avatarData);
-      await window._fsSetUser(user.uid, profile); // strips avatarData before Firestore
+      await window._fsSetUser(user.uid, profile);
     }
     profileCache[user.uid] = profile;
     return profile;
@@ -1348,12 +1295,7 @@ async function saveMyProfile(data){
   if(data.username !== undefined){
     updated.usernameLower = (data.username||"").toLowerCase();
   }
-  // Handle avatar separately — too large for Firestore (1MB limit)
-  if(data.avatarData){
-    window._fsSetAvatarLocal(currentUid, data.avatarData);
-  }
   profileCache[currentUid] = updated;
-  // _fsSetUser already strips avatarData before saving to Firestore
   await window._fsSetUser(currentUid, updated);
 }
 
@@ -1493,15 +1435,9 @@ function friendlyError(code){
     "auth/popup-closed-by-user":"Ventana de Google cerrada.",
     "auth/cancelled-popup-request":"Ventana de Google cerrada.",
     "auth/network-request-failed":"Error de red. Comprueba tu conexión.",
-    "auth/too-many-requests":"Demasiados intentos. Espera unos minutos.",
-    "auth/user-disabled":"Esta cuenta ha sido desactivada.",
-    "auth/operation-not-allowed":"Este método de acceso no está habilitado en Firebase.",
-    "auth/missing-password":"Introduce tu contraseña.",
-    "auth/missing-email":"Introduce tu correo electrónico."
+    "auth/too-many-requests":"Demasiados intentos. Espera un momento."
   };
-  if(map[code]) return map[code];
-  if(code) return "Error (" + code + "). Si persiste, contacta al soporte.";
-  return "Error desconocido. Inténtalo de nuevo.";
+  return map[code] || "Error inesperado. Inténtalo de nuevo.";
 }
 
 // LOGIN
@@ -1514,10 +1450,7 @@ $("#loginBtn").addEventListener("click", async () => {
   setAuthLoading(true);
   try{
     await window._fbSignInEmail(e,p);
-  }catch(err){
-    console.error("Login error:", err.code, err.message);
-    showAuthError(errEl, friendlyError(err.code));
-  }
+  }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
   finally{ setAuthLoading(false); }
 });
 
@@ -2267,17 +2200,7 @@ $("#profileEditSave").addEventListener("click", async () => {
     if(currentView==="profile") renderProfile();
   }catch(err){
     console.error("Save profile error:", err);
-    const code = err?.code || err?.message || "desconocido";
-    let msg = "Error al guardar. Código: " + code;
-    if(code.includes("permission-denied")){
-      msg = "Permiso denegado por Firestore.
-
-Actualiza las Reglas en Firebase Console.
-Ve a: Firestore Database → Pestaña Reglas → Publicar las reglas correctas.";
-    } else if(code.includes("unavailable") || code.includes("network")){
-      msg = "Sin conexión. Comprueba tu red.";
-    }
-    alert(msg);
+    alert("Error al guardar. Comprueba tu conexión.");
     saveBtn.textContent = "Guardar";
     saveBtn.disabled = false;
   }
