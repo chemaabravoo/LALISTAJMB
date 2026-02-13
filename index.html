@@ -76,11 +76,11 @@
     };
 
     window._fsSetUser = async (uid, data) => {
-      // avatarData can be a base64 string — Firestore has a 1MB doc limit.
-      // Strip it from Firestore and keep it only in localStorage.
       const toSave = { ...data };
-      delete toSave.avatarData; // never save avatar to Firestore
-      await setDoc(doc(db,"users",uid), toSave, { merge: true });
+      delete toSave.avatarData; // never save avatar to Firestore (1MB limit)
+      // Always use setDoc without merge so create+update both work
+      // with simple allow write rules
+      await setDoc(doc(db,"users",uid), toSave);
     };
 
     // Avatar stored in localStorage only (too large for Firestore)
@@ -1342,18 +1342,35 @@ async function getMyProfile(){
 
 async function saveMyProfile(data){
   if(!currentUid) return;
-  const current = await getMyProfile() || {};
-  const updated = { ...current, ...data };
-  // Save lowercase username for search queries
+  // Always build a complete profile object (setDoc without merge needs all fields)
+  const current = profileCache[currentUid] || {};
+  // If cache is empty, try to fetch from Firestore
+  if(!current.uid){
+    try{
+      const fetched = await window._fsGetUser(currentUid);
+      if(fetched) Object.assign(current, fetched);
+    }catch(e){}
+  }
+  const user = window._fbAuth?.currentUser;
+  const updated = {
+    uid: currentUid,
+    username: current.username || user?.displayName || "",
+    usernameLower: current.usernameLower || "",
+    code: current.code || genCode(),
+    following: current.following || [],
+    followers: current.followers || [],
+    ...data
+  };
+  // Always keep usernameLower in sync
   if(data.username !== undefined){
     updated.usernameLower = (data.username||"").toLowerCase();
   }
-  // Handle avatar separately — too large for Firestore (1MB limit)
+  // Avatar stays in localStorage only
   if(data.avatarData){
     window._fsSetAvatarLocal(currentUid, data.avatarData);
   }
-  profileCache[currentUid] = updated;
-  // _fsSetUser already strips avatarData before saving to Firestore
+  delete updated.avatarData;
+  profileCache[currentUid] = { ...updated, avatarData: data.avatarData || current.avatarData || "" };
   await window._fsSetUser(currentUid, updated);
 }
 
@@ -2268,11 +2285,14 @@ $("#profileEditSave").addEventListener("click", async () => {
   }catch(err){
     console.error("Save profile error:", err);
     const code = err?.code || err?.message || "desconocido";
-    let msg = "Error al guardar. Código: " + code;
+    console.error("PROFILE SAVE FAILED:", code, err);
+    let msg = "Error al guardar ("+code+"). ";
     if(code.includes("permission-denied")){
-      msg = "Permiso denegado. Ve a Firebase Console → Firestore → Reglas y vuelve a publicarlas.";
+      msg += "Firestore rechaza la escritura. Asegúrate de estar logueado y de que las reglas estén publicadas con 'allow write'.";
     } else if(code.includes("unavailable") || code.includes("network")){
-      msg = "Sin conexión. Comprueba tu red.";
+      msg += "Sin conexión. Comprueba tu red.";
+    } else {
+      msg += "Abre la consola del navegador (F12) y mira el error exacto.";
     }
     alert(msg);
     saveBtn.textContent = "Guardar";
