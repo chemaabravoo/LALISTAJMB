@@ -12,16 +12,14 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getAuth,
-      onAuthStateChanged,
-      signInWithEmailAndPassword,
-      createUserWithEmailAndPassword,
-      signInWithPopup,
-      GoogleAuthProvider,
-      sendPasswordResetEmail,
-      signOut,
-      updateProfile
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+      createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
+      sendPasswordResetEmail, signOut, updateProfile
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+      collection, getDocs, query, where, arrayUnion, arrayRemove
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBBS_h2F_gm8pYo4w3iM4Ac-ibr9DfcwLU",
@@ -33,21 +31,81 @@
       measurementId: "G-45QYFHG3VS"
     };
 
-    const app = initializeApp(firebaseConfig);
+    const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db   = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
 
-    // Exponer al scope global para el resto del código
-    window._fbAuth = auth;
-    window._fbSignInEmail = (email, pass) => signInWithEmailAndPassword(auth, email, pass);
-    window._fbRegister = (email, pass) => createUserWithEmailAndPassword(auth, email, pass);
-    window._fbGoogleLogin = () => signInWithPopup(auth, googleProvider);
-    window._fbResetPassword = (email) => sendPasswordResetEmail(auth, email);
-    window._fbSignOut = () => signOut(auth);
-    window._fbUpdateProfile = (data) => updateProfile(auth.currentUser, data);
+    window._fbAuth        = auth;
+    window._fbSignInEmail = (e,p) => signInWithEmailAndPassword(auth,e,p);
+    window._fbRegister    = (e,p) => createUserWithEmailAndPassword(auth,e,p);
+    window._fbGoogleLogin = ()    => signInWithPopup(auth, googleProvider);
+    window._fbResetPassword = (e) => sendPasswordResetEmail(auth,e);
+    window._fbSignOut     = ()    => signOut(auth);
+    window._fbUpdateProfile = (d) => updateProfile(auth.currentUser, d);
     window._fbOnAuthStateChanged = (cb) => onAuthStateChanged(auth, cb);
 
-    // Notificar que Firebase está listo
+    window._db = db;
+
+    window._fsGetUser = async (uid) => {
+      const snap = await getDoc(doc(db,"users",uid));
+      return snap.exists() ? snap.data() : null;
+    };
+
+    window._fsSetUser = async (uid, data) => {
+      await setDoc(doc(db,"users",uid), data, { merge: true });
+    };
+
+    window._fsSearchByCode = async (code) => {
+      const q = query(collection(db,"users"), where("code","==",code.toUpperCase().trim()));
+      const snap = await getDocs(q);
+      if(snap.empty) return null;
+      return { uid: snap.docs[0].id, ...snap.docs[0].data() };
+    };
+
+    window._fsGetUsersByUids = async (uids) => {
+      if(!uids || !uids.length) return [];
+      const results = [];
+      for(const uid of uids){
+        try{
+          const snap = await getDoc(doc(db,"users",uid));
+          if(snap.exists()) results.push({ uid: snap.id, ...snap.data() });
+        }catch(e){}
+      }
+      return results;
+    };
+
+    window._fsFollow = async (myUid, targetUid) => {
+      await updateDoc(doc(db,"users",myUid),   { following: arrayUnion(targetUid) });
+      await updateDoc(doc(db,"users",targetUid), { followers: arrayUnion(myUid) });
+    };
+
+    window._fsUnfollow = async (myUid, targetUid) => {
+      await updateDoc(doc(db,"users",myUid),   { following: arrayRemove(targetUid) });
+      await updateDoc(doc(db,"users",targetUid), { followers: arrayRemove(myUid) });
+    };
+
+    window._fsGetPublicObjectives = async (uid) => {
+      const snap = await getDocs(collection(db,"objectives",uid,"items"));
+      return snap.docs.map(d=>({...d.data()})).filter(o => o.isPublic !== false);
+    };
+
+    window._fsSaveObjective = async (uid, obj) => {
+      if(obj.isPublic !== false){
+        // Strip data: URIs — too large for Firestore
+        const toSave = { ...obj };
+        if(toSave.imgs) toSave.imgs = toSave.imgs.filter(s => !s.startsWith("data:"));
+        if(!toSave.imgs || !toSave.imgs.length) return; // skip if no public imgs
+        await setDoc(doc(db,"objectives",uid,"items",String(obj.id)), toSave);
+      } else {
+        try{ await deleteDoc(doc(db,"objectives",uid,"items",String(obj.id))); }catch(e){}
+      }
+    };
+
+    window._fsDeleteObjective = async (uid, id) => {
+      try{ await deleteDoc(doc(db,"objectives",uid,"items",String(id))); }catch(e){}
+    };
+
     window.dispatchEvent(new Event("firebaseReady"));
   </script>
 
@@ -92,11 +150,8 @@
 
     /* =============== ONBOARDING / AUTH SCREEN =============== */
     .onboarding{
-      height:100%;
-      padding:18px;
-      display:flex;
-      align-items:flex-end;
-      justify-content:center;
+      height:100%;padding:18px;
+      display:flex;align-items:flex-end;justify-content:center;
       background:
         linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.85)),
         url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=60")
@@ -105,162 +160,96 @@
     .obLogo{
       position:absolute;
       top:calc(env(safe-area-inset-top,0px) + 18px);
-      left:0;right:0;
-      text-align:center;
-      font-weight:800;
-      letter-spacing:.35em;
-      font-size:28px;
-      user-select:none;
-      color:#fff;
+      left:0;right:0;text-align:center;
+      font-weight:800;letter-spacing:.35em;font-size:28px;
+      user-select:none;color:#fff;
     }
     .obHero{
-      position:absolute;
-      top:45%;
-      left:18px;right:18px;
+      position:absolute;top:45%;left:18px;right:18px;
       transform:translateY(-50%);
     }
-    .obTitle{
-      font-size:40px;
-      font-weight:850;
-      line-height:1.05;
-      color:#fff;
-    }
+    .obTitle{font-size:40px;font-weight:850;line-height:1.05;color:#fff;}
     .obSubtitle{
-      margin-top:22px;
-      font-size:14px;
-      line-height:1.55;
-      color:var(--muted);
-      text-align:center;
-      max-width:36ch;
-      margin-inline:auto;
+      margin-top:22px;font-size:14px;line-height:1.55;
+      color:var(--muted);text-align:center;max-width:36ch;margin-inline:auto;
     }
     .obButtons{
-      width:100%;
-      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
-      display:flex;
-      flex-direction:column;
-      gap:12px;
+      width:100%;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
+      display:flex;flex-direction:column;gap:12px;
     }
     .btnEntrar{
       width:100%;border:none;border-radius:999px;padding:16px;
-      font-size:16px;font-weight:750;
-      background:#0000FF;
-      color:#fff;cursor:pointer;
+      font-size:16px;font-weight:750;background:#0000FF;color:#fff;cursor:pointer;
     }
     .btnEntrar:active{transform:translateY(1px)}
     .btnRegistrar{
       width:100%;border:1.5px solid rgba(255,255,255,.55);
-      border-radius:999px;padding:15px;
-      font-size:16px;font-weight:750;
-      background:rgba(255,255,255,.12);
-      color:#fff;cursor:pointer;
+      border-radius:999px;padding:15px;font-size:16px;font-weight:750;
+      background:rgba(255,255,255,.12);color:#fff;cursor:pointer;
       backdrop-filter:blur(8px);
     }
     .btnRegistrar:active{transform:translateY(1px)}
 
     /* =============== AUTH POPUP MODAL =============== */
     .authModalBack{
-      position:absolute;inset:0;
-      background:rgba(0,0,0,.55);
-      display:none;
-      align-items:flex-end;
-      justify-content:center;
-      padding:14px;
-      z-index:200;
-      backdrop-filter:blur(4px);
-      -webkit-backdrop-filter:blur(4px);
+      position:absolute;inset:0;background:rgba(0,0,0,.55);
+      display:none;align-items:flex-end;justify-content:center;
+      padding:14px;z-index:200;
+      backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
     }
     .authModalBack.show{display:flex;}
-
     .authCard{
-      width:100%;
-      background:#fff;
-      border-radius:24px;
-      padding:24px 20px 20px;
-      box-shadow:var(--shadow);
-      position:relative;
-      max-height:92vh;
-      overflow-y:auto;
+      width:100%;background:#fff;border-radius:24px;
+      padding:24px 20px 20px;box-shadow:var(--shadow);
+      position:relative;max-height:92vh;overflow-y:auto;
     }
-
     .authModalClose{
-      position:absolute;
-      top:14px;right:14px;
-      width:36px;height:36px;
-      border-radius:50%;
-      border:none;
-      background:rgba(11,16,34,.07);
-      cursor:pointer;
-      font-size:16px;
-      color:rgba(11,16,34,.55);
-      display:flex;align-items:center;justify-content:center;
+      position:absolute;top:14px;right:14px;
+      width:36px;height:36px;border-radius:50%;border:none;
+      background:rgba(11,16,34,.07);cursor:pointer;font-size:16px;
+      color:rgba(11,16,34,.55);display:flex;align-items:center;justify-content:center;
     }
     .authModalClose:active{background:rgba(11,16,34,.12);}
-
     .authTabs{
-      display:flex;gap:0;
-      background:rgba(11,16,34,.07);
-      border-radius:14px;padding:4px;
-      margin-bottom:22px;
+      display:flex;gap:0;background:rgba(11,16,34,.07);
+      border-radius:14px;padding:4px;margin-bottom:22px;
     }
     .authTab{
       flex:1;border:none;background:transparent;
-      padding:10px;border-radius:11px;
-      font-size:14px;font-weight:800;
-      color:rgba(11,16,34,.50);cursor:pointer;
-      transition:all .18s ease;
+      padding:10px;border-radius:11px;font-size:14px;font-weight:800;
+      color:rgba(11,16,34,.50);cursor:pointer;transition:all .18s ease;
     }
-    .authTab.active{
-      background:#fff;color:var(--ink);
-      box-shadow:0 2px 12px rgba(0,0,0,.12);
-    }
-
+    .authTab.active{background:#fff;color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.12);}
     .authForm{display:none;}
     .authForm.active{display:block;}
-
     .authField{margin-bottom:12px;}
-    .authField label{
-      display:block;font-size:12px;font-weight:800;
-      color:rgba(11,16,34,.60);margin-bottom:6px;
-    }
+    .authField label{display:block;font-size:12px;font-weight:800;color:rgba(11,16,34,.60);margin-bottom:6px;}
     .authField input{
-      width:100%;border-radius:14px;
-      border:1.5px solid rgba(11,16,34,.12);
-      padding:13px 14px;font-size:15px;
-      color:var(--ink);outline:none;
+      width:100%;border-radius:14px;border:1.5px solid rgba(11,16,34,.12);
+      padding:13px 14px;font-size:15px;color:var(--ink);outline:none;
       transition:border-color .15s;background:#fff;
     }
     .authField input:focus{border-color:var(--cta);}
-
     .authError{
-      display:none;
-      background:rgba(239,68,68,.08);
-      border:1px solid rgba(239,68,68,.25);
-      border-radius:12px;padding:10px 12px;
-      font-size:13px;font-weight:700;color:#b91c1c;
-      margin-bottom:12px;
+      display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);
+      border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;
+      color:#b91c1c;margin-bottom:12px;
     }
     .authError.show{display:block;}
-
     .authSuccess{
-      display:none;
-      background:rgba(35,199,182,.08);
-      border:1px solid rgba(35,199,182,.30);
-      border-radius:12px;padding:10px 12px;
-      font-size:13px;font-weight:700;color:#0a3a34;
-      margin-bottom:12px;
+      display:none;background:rgba(35,199,182,.08);border:1px solid rgba(35,199,182,.30);
+      border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;
+      color:#0a3a34;margin-bottom:12px;
     }
     .authSuccess.show{display:block;}
-
     .btnPrimary{
-      width:100%;border:none;border-radius:14px;
-      padding:15px;font-size:15px;font-weight:800;
+      width:100%;border:none;border-radius:14px;padding:15px;
+      font-size:15px;font-weight:800;
       background:linear-gradient(180deg,#0b1022,#1a2340);
       color:#fff;cursor:pointer;margin-bottom:10px;transition:opacity .15s;
     }
     .btnPrimary:active{opacity:.85;}
     .btnPrimary:disabled{opacity:.55;cursor:not-allowed;}
-
     .btnGoogle{
       width:100%;border:1.5px solid rgba(11,16,34,.14);
       border-radius:14px;padding:14px;font-size:15px;font-weight:800;
@@ -270,253 +259,153 @@
     }
     .btnGoogle:active{background:#f5f5f5;}
     .btnGoogle svg{flex:0 0 20px;}
-
-    .authDivider{
-      display:flex;align-items:center;gap:10px;margin:14px 0;
-    }
-    .authDivider::before,.authDivider::after{
-      content:"";flex:1;height:1px;background:rgba(11,16,34,.10);
-    }
+    .authDivider{display:flex;align-items:center;gap:10px;margin:14px 0;}
+    .authDivider::before,.authDivider::after{content:"";flex:1;height:1px;background:rgba(11,16,34,.10);}
     .authDivider span{font-size:12px;font-weight:700;color:rgba(11,16,34,.40);}
-
     .forgotLink{
       display:block;text-align:right;font-size:12px;font-weight:700;
       color:rgba(11,16,34,.50);cursor:pointer;
-      margin-top:-4px;margin-bottom:14px;
-      background:none;border:none;padding:0;
+      margin-top:-4px;margin-bottom:14px;background:none;border:none;padding:0;
     }
     .forgotLink:hover{color:var(--ink);}
-
-    /* Loading spinner overlay */
     .authSpinner{
-      display:none;position:absolute;inset:0;
-      background:rgba(255,255,255,.70);border-radius:24px;
-      align-items:center;justify-content:center;z-index:10;
+      display:none;position:absolute;inset:0;background:rgba(255,255,255,.70);
+      border-radius:24px;align-items:center;justify-content:center;z-index:10;
     }
     .authSpinner.show{display:flex;}
     .spinner{
-      width:32px;height:32px;
-      border:3px solid rgba(11,16,34,.15);
+      width:32px;height:32px;border:3px solid rgba(11,16,34,.15);
       border-top-color:var(--cta);border-radius:50%;
       animation:spin .7s linear infinite;
     }
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* =============== APP SHELL =============== */
-    .app{
-      height:100%;
-      background:#000;
-      display:flex;
-    }
+    .app{height:100%;background:#000;display:flex;}
     .appShell{
-      flex:1;
-      margin:14px;
-      background:#f6f7fb;
-      border-radius:22px;
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      box-shadow:var(--shadow);
-      position:relative;
+      flex:1;margin:14px;background:#f6f7fb;border-radius:22px;
+      overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:var(--shadow);position:relative;
     }
     .topbar{
       padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 12px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      background:#f6f7fb;
-      z-index:2;
+      display:flex;justify-content:space-between;align-items:center;gap:12px;
+      background:#f6f7fb;z-index:2;
     }
     .topbar h1{font-size:22px;color:var(--ink);font-weight:850;}
     .gear{
-      width:40px;height:40px;
-      border-radius:14px;
-      border:1px solid var(--stroke);
-      background:#fff;
-      cursor:pointer;
+      width:40px;height:40px;border-radius:14px;border:1px solid var(--stroke);
+      background:#fff;cursor:pointer;
     }
     .gear:active{transform:translateY(1px)}
-
     .tabs{
-      display:flex;gap:10px;
-      padding:0 16px 12px;
-      background:#f6f7fb;z-index:2;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      scrollbar-width:none;
+      display:flex;gap:10px;padding:0 16px 12px;background:#f6f7fb;z-index:2;
+      overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
     }
     .tabs::-webkit-scrollbar{display:none;}
     .tab{
-      padding:10px 14px;border-radius:999px;
-      background:var(--pill);border:none;
-      font-weight:750;font-size:13px;
-      color:rgba(11,16,34,.75);cursor:pointer;
+      padding:10px 14px;border-radius:999px;background:var(--pill);border:none;
+      font-weight:750;font-size:13px;color:rgba(11,16,34,.75);cursor:pointer;
       white-space:nowrap;flex:0 0 auto;
     }
     .tab.active{background:var(--pillActive);color:var(--ink);}
-
-    /* Botón cambio de vista */
     .viewToggleBtn{
-      width:40px;height:40px;flex:0 0 auto;
-      border-radius:14px;border:1px solid rgba(0,0,0,.10);
-      background:#fff;cursor:pointer;font-size:16px;
+      width:40px;height:40px;flex:0 0 auto;border-radius:14px;
+      border:1px solid rgba(0,0,0,.10);background:#fff;cursor:pointer;font-size:16px;
       display:flex;align-items:center;justify-content:center;
       box-shadow:0 2px 8px rgba(0,0,0,.06);
     }
     .viewToggleBtn:active{transform:translateY(1px)}
-
-    /* Vista lista */
     .listView{
-      height:100%;overflow-y:auto;
-      padding:6px 16px 92px;
-      -webkit-overflow-scrolling:touch;
-      display:none;
+      height:100%;overflow-y:auto;padding:6px 16px 92px;
+      -webkit-overflow-scrolling:touch;display:none;
     }
     .listView.active{display:block;}
     .carousel.hidden{display:none;}
-
     .listObjCard{
-      background:#fff;border-radius:16px;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:0 4px 16px rgba(0,0,0,.08);
-      display:flex;gap:0;overflow:hidden;
-      cursor:pointer;margin-bottom:12px;
-      transition:opacity .18s;
+      background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;gap:0;overflow:hidden;
+      cursor:pointer;margin-bottom:12px;transition:opacity .18s;
     }
     .listObjCard.done{opacity:.62;}
-    .listObjImg{
-      width:90px;flex:0 0 90px;
-      background:center/cover no-repeat;
-    }
-    .listObjBody{
-      flex:1;padding:12px;
-      display:flex;flex-direction:column;justify-content:center;gap:4px;
-      min-width:0;
-    }
+    .listObjImg{width:90px;flex:0 0 90px;background:center/cover no-repeat;}
+    .listObjBody{flex:1;padding:12px;display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;}
     .listObjTitle{font-size:14px;font-weight:850;color:var(--ink);line-height:1.2;}
     .listObjMeta{font-size:12px;color:var(--inkMuted);font-weight:650;}
     .listObjBadge{
-      align-self:flex-start;
-      font-size:10px;font-weight:850;
-      padding:5px 8px;border-radius:999px;
-      background:rgba(0,0,0,.06);color:rgba(11,16,34,.75);
-      border:1px solid rgba(0,0,0,.06);white-space:nowrap;margin-top:4px;
+      align-self:flex-start;font-size:10px;font-weight:850;
+      padding:5px 8px;border-radius:999px;background:rgba(0,0,0,.06);
+      color:rgba(11,16,34,.75);border:1px solid rgba(0,0,0,.06);white-space:nowrap;margin-top:4px;
     }
-    .listObjBadge.done{
-      background:rgba(0,0,255,.10);
-      border-color:rgba(0,0,255,.20);color:#00008b;
-    }
-
+    .listObjBadge.done{background:rgba(0,0,255,.10);border-color:rgba(0,0,255,.20);color:#00008b;}
     .ideaTabs{display:flex;gap:10px;margin-bottom:12px;}
     .ideaTab{
-      padding:10px 14px;border-radius:999px;
-      background:var(--pill);border:none;
-      font-weight:750;font-size:13px;
-      color:rgba(11,16,34,.75);cursor:pointer;
+      padding:10px 14px;border-radius:999px;background:var(--pill);border:none;
+      font-weight:750;font-size:13px;color:rgba(11,16,34,.75);cursor:pointer;
     }
     .ideaTab.active{background:var(--pillActive);color:var(--ink);}
-
     .content{flex:1;overflow:hidden;background:#f6f7fb;}
-
     .carousel{
-      height:100%;display:flex;gap:14px;
-      overflow-x:auto;scroll-snap-type:x mandatory;
-      -webkit-overflow-scrolling:touch;
-      padding:6px 16px 92px;
+      height:100%;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;padding:6px 16px 92px;
     }
     .carousel::-webkit-scrollbar{display:none}
-
     .objCard{
-      flex:0 0 calc(100% - 32px);height:100%;
-      scroll-snap-align:start;background:var(--card);
-      border-radius:20px;overflow:hidden;
-      display:flex;flex-direction:column;
-      box-shadow:var(--shadow2);
-      border:1px solid rgba(0,0,0,.06);
-      cursor:pointer;transition:opacity .18s ease;
+      flex:0 0 calc(100% - 32px);height:100%;scroll-snap-align:start;
+      background:var(--card);border-radius:20px;overflow:hidden;
+      display:flex;flex-direction:column;box-shadow:var(--shadow2);
+      border:1px solid rgba(0,0,0,.06);cursor:pointer;transition:opacity .18s ease;
     }
     .objCard.done{opacity:.62;}
     .objCard.done .objImg{filter:saturate(.85) contrast(.95);}
     .objCard.done .objTitle,.objCard.done .objMeta{color:rgba(11,16,34,.55);}
     .objImg{flex:1;background:center/cover no-repeat;}
-    .objBody{
-      padding:16px;display:flex;
-      align-items:flex-start;justify-content:space-between;gap:12px;
-    }
+    .objBody{padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
     .objTitle{font-size:16px;font-weight:850;color:var(--ink);line-height:1.15;}
     .objMeta{margin-top:6px;font-size:13px;color:var(--inkMuted);font-weight:650;}
     .badge{
-      flex:0 0 auto;font-size:11px;font-weight:850;
-      padding:8px 10px;border-radius:999px;
+      flex:0 0 auto;font-size:11px;font-weight:850;padding:8px 10px;border-radius:999px;
       background:rgba(0,0,0,.06);color:rgba(11,16,34,.75);
       border:1px solid rgba(0,0,0,.06);white-space:nowrap;
     }
-    .badge.done{
-      background:rgba(35,199,182,.18);
-      border-color:rgba(35,199,182,.30);color:#0a3a34;
-    }
+    .badge.done{background:rgba(35,199,182,.18);border-color:rgba(35,199,182,.30);color:#0a3a34;}
 
     #map{height:100%;width:100%;position:relative;z-index:1;}
     .leaflet-container{background:#f6f7fb;}
     .leaflet-pane,.leaflet-map-pane{z-index:1 !important;}
     .leaflet-top,.leaflet-bottom{z-index:2 !important;}
 
-    .profileWrap{
-      height:100%;overflow:auto;
-      padding:8px 16px 92px;
-      -webkit-overflow-scrolling:touch;
-    }
-    .sectionTitle{
-      margin:10px 2px 10px;font-size:14px;
-      font-weight:900;color:rgba(11,16,34,.78);
-    }
+    .profileWrap{height:100%;overflow:auto;padding:8px 16px 92px;-webkit-overflow-scrolling:touch;}
+    .sectionTitle{margin:10px 2px 10px;font-size:14px;font-weight:900;color:rgba(11,16,34,.78);}
     .kpiGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-    .kpi{
-      background:#fff;border-radius:18px;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:var(--shadow2);padding:14px;
-    }
+    .kpi{background:#fff;border-radius:18px;border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow2);padding:14px;}
     .kpi .label{font-size:12px;color:rgba(11,16,34,.55);font-weight:800;}
     .kpi .value{margin-top:8px;font-size:22px;color:var(--ink);font-weight:950;letter-spacing:-.4px;}
     .kpi .sub{margin-top:6px;font-size:12px;color:rgba(11,16,34,.55);font-weight:700;}
-
-    /* User card in profile */
     .userCard{
-      background:#fff;border-radius:18px;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:var(--shadow2);
-      padding:16px;margin-bottom:12px;
-      display:flex;align-items:center;gap:14px;
+      background:#fff;border-radius:18px;border:1px solid rgba(0,0,0,.06);
+      box-shadow:var(--shadow2);padding:16px;margin-bottom:12px;
+      display:flex;align-items:center;gap:14px;cursor:pointer;
     }
+    .userCard:active{opacity:.85;}
     .userAvatar{
       width:48px;height:48px;border-radius:50%;
       background:linear-gradient(135deg,#0000FF,#4444ff);
       display:flex;align-items:center;justify-content:center;
-      font-size:20px;font-weight:900;color:#fff;
-      flex:0 0 auto;overflow:hidden;
+      font-size:20px;font-weight:900;color:#fff;flex:0 0 auto;overflow:hidden;
     }
     .userAvatar img{width:100%;height:100%;object-fit:cover;}
     .userName{font-size:14px;font-weight:900;color:var(--ink);}
     .userEmail{font-size:12px;color:rgba(11,16,34,.55);font-weight:700;margin-top:3px;}
     .btnSignOut{
-      width:100%;
-      border:1.5px solid rgba(185,28,28,.30);
-      background:#fff;border-radius:14px;
-      padding:13px;font-size:14px;
-      font-weight:800;color:#b91c1c;
-      cursor:pointer;margin-top:16px;
+      width:100%;border:1.5px solid rgba(185,28,28,.30);background:#fff;
+      border-radius:14px;padding:13px;font-size:14px;font-weight:800;
+      color:#b91c1c;cursor:pointer;margin-top:16px;
     }
     .btnSignOut:active{background:#fff5f5;}
-
-    .list{
-      background:#fff;border-radius:18px;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:var(--shadow2);overflow:hidden;
-    }
+    .list{background:#fff;border-radius:18px;border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow2);overflow:hidden;}
     .rowItem{
-      display:flex;align-items:flex-start;
-      justify-content:space-between;gap:10px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
       padding:14px;border-top:1px solid rgba(0,0,0,.06);
     }
     .rowItem:first-child{border-top:none}
@@ -527,131 +416,81 @@
 
     /* DETALLE */
     .detail{height:100%;background:#000;display:flex;padding:14px;}
-    .detailShell{
-      flex:1;border-radius:22px;overflow:hidden;
-      box-shadow:var(--shadow);position:relative;background:#000;
-    }
-    .detailHero{
-      position:absolute;inset:0;
-      background:#000 center/cover no-repeat;cursor:pointer;
-    }
-    .detailOverlay{
-      position:absolute;inset:0;
-      background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.90) 100%);
-    }
+    .detailShell{flex:1;border-radius:22px;overflow:hidden;box-shadow:var(--shadow);position:relative;background:#000;}
+    .detailHero{position:absolute;inset:0;background:#000 center/cover no-repeat;cursor:pointer;}
+    .detailOverlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.90) 100%);}
     .detailTopBtns{
-      position:absolute;
-      top:calc(env(safe-area-inset-top,0px) + 14px);
-      left:14px;right:14px;
-      display:flex;justify-content:space-between;align-items:center;z-index:5;
+      position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);
+      left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;z-index:5;
     }
     .iconBtn{
-      width:42px;height:42px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.22);
+      width:42px;height:42px;border-radius:14px;border:1px solid rgba(255,255,255,.22);
       background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
       backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     }
     .iconBtn:active{transform:translateY(1px)}
-    .detailThumbs{
-      position:absolute;top:120px;right:14px;
-      z-index:5;display:flex;flex-direction:column;gap:10px;
-    }
+    .detailThumbs{position:absolute;top:120px;right:14px;z-index:5;display:flex;flex-direction:column;gap:10px;}
     .thumb{
-      width:54px;height:54px;border-radius:14px;
-      border:2px solid rgba(255,255,255,.88);
-      background:center/cover no-repeat;cursor:pointer;
-      box-shadow:0 10px 25px rgba(0,0,0,.35);
+      width:54px;height:54px;border-radius:14px;border:2px solid rgba(255,255,255,.88);
+      background:center/cover no-repeat;cursor:pointer;box-shadow:0 10px 25px rgba(0,0,0,.35);
     }
     .thumb.dim{border-color:rgba(255,255,255,.45);opacity:.9;}
-    .detailTitleBlock{
-      position:absolute;left:18px;right:88px;bottom:300px;z-index:5;color:#fff;
-    }
+    .detailTitleBlock{position:absolute;left:18px;right:88px;bottom:300px;z-index:5;color:#fff;}
     .detailTitleBlock h2{font-size:28px;font-weight:950;letter-spacing:-.4px;line-height:1.05;}
     .detailTitleBlock .subline{margin-top:10px;font-size:13px;color:rgba(255,255,255,.78);font-weight:700;}
     .sheet{
-      position:absolute;left:0;right:0;bottom:0;
-      background:#f6f7fb;border-radius:22px 22px 0 0;
-      padding:14px 14px 18px;z-index:6;min-height:46%;
+      position:absolute;left:0;right:0;bottom:0;background:#f6f7fb;
+      border-radius:22px 22px 0 0;padding:14px 14px 18px;z-index:6;min-height:46%;
     }
     .chips{display:flex;gap:10px;flex-wrap:wrap;padding:4px 4px 10px;}
     .chip{
-      display:flex;flex-direction:column;gap:2px;
-      background:#fff;border:1px solid rgba(0,0,0,.06);
-      box-shadow:var(--shadow2);border-radius:16px;
-      padding:10px 12px;min-width:92px;
+      display:flex;flex-direction:column;gap:2px;background:#fff;
+      border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow2);
+      border-radius:16px;padding:10px 12px;min-width:92px;
     }
     .chip .k{font-size:11px;color:rgba(11,16,34,.55);font-weight:900;}
     .chip .v{font-size:14px;color:var(--ink);font-weight:950;}
     .descTitle{padding:6px;font-size:14px;font-weight:950;color:rgba(11,16,34,.78);}
-    .desc{
-      padding:0 6px 12px;font-size:13px;line-height:1.55;
-      color:rgba(11,16,34,.60);max-height:120px;overflow:auto;
-    }
+    .desc{padding:0 6px 12px;font-size:13px;line-height:1.55;color:rgba(11,16,34,.60);max-height:120px;overflow:auto;}
     .sheetBottom{
       display:flex;align-items:center;justify-content:space-between;gap:12px;
       padding:6px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
     }
     .price{font-weight:950;color:var(--ink);font-size:22px;letter-spacing:-.4px;}
-    .action{
-      width:56px;height:56px;border-radius:18px;border:none;
-      background:#0b1022;color:#fff;font-size:20px;cursor:pointer;box-shadow:var(--shadow2);
-    }
+    .action{width:56px;height:56px;border-radius:18px;border:none;background:#0b1022;color:#fff;font-size:20px;cursor:pointer;box-shadow:var(--shadow2);}
     .action:active{transform:translateY(1px)}
 
     /* NAV */
     .nav{position:absolute;left:14px;right:14px;bottom:14px;pointer-events:none;}
     .navInner{
-      pointer-events:auto;height:64px;background:var(--navBg);
-      border-radius:18px;display:flex;justify-content:space-around;
-      align-items:center;box-shadow:var(--shadow2);border:1px solid rgba(0,0,0,.08);
+      pointer-events:auto;height:64px;background:var(--navBg);border-radius:18px;
+      display:flex;justify-content:space-around;align-items:center;
+      box-shadow:var(--shadow2);border:1px solid rgba(0,0,0,.08);
     }
-    .navBtn{
-      width:46px;height:46px;border-radius:16px;border:none;
-      font-size:20px;background:transparent;color:rgba(11,16,34,.45);cursor:pointer;
-    }
+    .navBtn{width:46px;height:46px;border-radius:16px;border:none;font-size:20px;background:transparent;color:rgba(11,16,34,.45);cursor:pointer;}
     .navBtn.active{background:#0b1022;color:#fff;}
     .navBtn:active{transform:translateY(1px)}
 
     /* MODALES */
     .modalBack{
       position:absolute;inset:0;background:rgba(0,0,0,.45);
-      display:none;align-items:flex-end;justify-content:center;
-      padding:14px;z-index:80;
+      display:none;align-items:flex-end;justify-content:center;padding:14px;z-index:80;
     }
     .modalBack.show{display:flex;}
-    .modal{
-      width:100%;background:#fff;border-radius:20px;
-      box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.08);overflow:hidden;
-    }
-    .modalHead{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:12px 12px 10px;border-bottom:1px solid rgba(0,0,0,.08);
-    }
+    .modal{width:100%;background:#fff;border-radius:20px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.08);overflow:hidden;}
+    .modalHead{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 10px;border-bottom:1px solid rgba(0,0,0,.08);}
     .modalHead strong{color:var(--ink);font-size:14px;}
-    .close{
-      border:none;width:40px;height:40px;border-radius:14px;
-      background:rgba(0,0,0,.06);cursor:pointer;color:var(--ink);font-size:18px;
-    }
-    .modalBody{
-      padding:12px;max-height:min(72vh,600px);
-      overflow:auto;-webkit-overflow-scrolling:touch;
-    }
-    .modalActions{
-      display:flex;gap:10px;padding:12px;border-top:1px solid rgba(0,0,0,.08);
-    }
-    .primary,.ghost,.danger{
-      flex:1;border-radius:14px;padding:12px;font-weight:900;
-      border:1px solid rgba(0,0,0,.10);cursor:pointer;font-size:13px;
-    }
+    .close{border:none;width:40px;height:40px;border-radius:14px;background:rgba(0,0,0,.06);cursor:pointer;color:var(--ink);font-size:18px;}
+    .modalBody{padding:12px;max-height:min(72vh,600px);overflow:auto;-webkit-overflow-scrolling:touch;}
+    .modalActions{display:flex;gap:10px;padding:12px;border-top:1px solid rgba(0,0,0,.08);}
+    .primary,.ghost,.danger{flex:1;border-radius:14px;padding:12px;font-weight:900;border:1px solid rgba(0,0,0,.10);cursor:pointer;font-size:13px;}
     .ghost{background:#fff;color:var(--ink);}
     .primary{background:#0b1022;color:#fff;border-color:#0b1022;}
     .danger{background:#fff;color:#b91c1c;border-color:rgba(185,28,28,.35);}
-
     .miniList{display:grid;gap:10px;}
     .miniItem{
-      background:#fff;border:1px solid rgba(0,0,0,.08);
-      box-shadow:var(--shadow2);border-radius:16px;overflow:hidden;
-      display:flex;gap:10px;cursor:pointer;transition:opacity .18s ease;
+      background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:var(--shadow2);
+      border-radius:16px;overflow:hidden;display:flex;gap:10px;cursor:pointer;transition:opacity .18s ease;
     }
     .miniItem.done{opacity:.62;}
     .miniImg{width:72px;height:72px;background:center/cover no-repeat;flex:0 0 auto;}
@@ -664,71 +503,33 @@
       color:rgba(11,16,34,.75);border:1px solid rgba(0,0,0,.06);white-space:nowrap;
     }
     .tag.done{background:rgba(35,199,182,.18);border-color:rgba(35,199,182,.30);color:#0a3a34;}
-
     .form{display:grid;gap:10px;}
     .field label{display:block;font-size:12px;font-weight:900;color:rgba(11,16,34,.65);margin:2px 2px 6px;}
-    .field input,.field select,.field textarea{
-      width:100%;border-radius:14px;border:1px solid rgba(0,0,0,.10);
-      padding:12px;font-size:14px;outline:none;
-    }
+    .field input,.field select,.field textarea{width:100%;border-radius:14px;border:1px solid rgba(0,0,0,.10);padding:12px;font-size:14px;outline:none;}
     .field textarea{min-height:96px;resize:none;}
     .inline{display:flex;gap:10px;}
     .inline .field{flex:1;}
-    .switchRow{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:12px;padding:10px 12px;border:1px solid rgba(0,0,0,.10);border-radius:14px;
-    }
+    .switchRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid rgba(0,0,0,.10);border-radius:14px;}
     .switchRow span{font-size:13px;color:rgba(11,16,34,.70);font-weight:900;}
     .smallNote{font-size:12px;color:rgba(11,16,34,.55);font-weight:700;padding:2px 2px 8px;}
-    .fileRow{
-      display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-      padding:10px 12px;border:1px solid rgba(0,0,0,.10);
-      border-radius:14px;background:rgba(0,0,0,.02);
-    }
-    .fileRow button{
-      border:none;border-radius:12px;padding:10px 12px;
-      background:#0b1022;color:#fff;font-weight:900;cursor:pointer;font-size:12px;
-    }
+    .fileRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid rgba(0,0,0,.10);border-radius:14px;background:rgba(0,0,0,.02);}
+    .fileRow button{border:none;border-radius:12px;padding:10px 12px;background:#0b1022;color:#fff;font-weight:900;cursor:pointer;font-size:12px;}
     .fileRow button:active{transform:translateY(1px)}
     .fileRow span{font-size:12px;font-weight:800;color:rgba(11,16,34,.65);}
     .hiddenInput{display:none}
 
     /* LIGHTBOX */
-    .lightbox{
-      position:absolute;inset:0;background:rgba(0,0,0,.92);
-      display:none;z-index:120;padding:14px;
-    }
+    .lightbox{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;z-index:120;padding:14px;}
     .lightbox.show{display:block;}
-    .lbTop{
-      display:flex;justify-content:space-between;align-items:center;
-      padding-top:calc(env(safe-area-inset-top,0px) + 6px);margin-bottom:12px;
-    }
-    .lbBtn{
-      width:42px;height:42px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.10);
-      color:#fff;cursor:pointer;backdrop-filter:blur(10px);
-    }
+    .lbTop{display:flex;justify-content:space-between;align-items:center;padding-top:calc(env(safe-area-inset-top,0px) + 6px);margin-bottom:12px;}
+    .lbBtn{width:42px;height:42px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.10);color:#fff;cursor:pointer;backdrop-filter:blur(10px);}
     .lbBtn:active{transform:translateY(1px)}
     .lbCounter{color:rgba(255,255,255,.85);font-weight:900;font-size:13px;}
-    .lbStage{
-      height:calc(100% - 120px);display:flex;
-      align-items:center;justify-content:center;user-select:none;touch-action:pan-y;
-    }
-    .lbImg{
-      max-width:100%;max-height:100%;border-radius:18px;
-      box-shadow:0 20px 70px rgba(0,0,0,.55);object-fit:contain;background:#111;
-    }
-    .lbNav{
-      position:absolute;left:14px;right:14px;top:50%;
-      transform:translateY(-50%);display:flex;
-      justify-content:space-between;pointer-events:none;
-    }
+    .lbStage{height:calc(100% - 120px);display:flex;align-items:center;justify-content:center;user-select:none;touch-action:pan-y;}
+    .lbImg{max-width:100%;max-height:100%;border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.55);object-fit:contain;background:#111;}
+    .lbNav{position:absolute;left:14px;right:14px;top:50%;transform:translateY(-50%);display:flex;justify-content:space-between;pointer-events:none;}
     .lbNav .lbBtn{pointer-events:auto;}
-    .lbHint{
-      position:absolute;left:14px;right:14px;
-      bottom:calc(env(safe-area-inset-bottom,0px) + 18px);
-      text-align:center;color:rgba(255,255,255,.6);font-size:12px;font-weight:800;
-    }
+    .lbHint{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);text-align:center;color:rgba(255,255,255,.6);font-size:12px;font-weight:800;}
 
     /* WIZARD */
     .wizardStep{display:none;}
@@ -737,80 +538,53 @@
     .dot{width:8px;height:8px;border-radius:999px;background:rgba(11,16,34,.18);}
     .dot.active{background:rgba(11,16,34,.75);}
 
-    /* MAPA — botón volver */
-    .mapTopBar{
-      position:absolute;
-      top:calc(env(safe-area-inset-top,0px) + 12px);
-      left:12px;
-      z-index:10;
-    }
+    /* MAPA */
+    .mapTopBar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;z-index:10;}
     .mapBackBtn{
-      display:flex;align-items:center;gap:8px;
-      background:#fff;border:none;border-radius:14px;
-      padding:10px 14px;font-size:13px;font-weight:800;
-      color:var(--ink);cursor:pointer;
+      display:flex;align-items:center;gap:8px;background:#fff;border:none;border-radius:14px;
+      padding:10px 14px;font-size:13px;font-weight:800;color:var(--ink);cursor:pointer;
       box-shadow:0 4px 16px rgba(0,0,0,.18);
     }
     .mapBackBtn:active{transform:translateY(1px);}
 
-    /* SOCIAL — seguidores/seguidos */
-    .socialGrid{
-      display:grid;grid-template-columns:1fr 1fr;
-      gap:12px;margin-bottom:12px;
-    }
+    /* SOCIAL */
+    .socialGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
     .socialCard{
-      background:#fff;border-radius:18px;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:var(--shadow2);
-      padding:14px;text-align:center;cursor:pointer;
+      background:#fff;border-radius:18px;border:1px solid rgba(0,0,0,.06);
+      box-shadow:var(--shadow2);padding:14px;text-align:center;cursor:pointer;
     }
     .socialCard:active{transform:translateY(1px);}
     .socialCard .sNum{font-size:26px;font-weight:950;color:#0000FF;letter-spacing:-.5px;}
     .socialCard .sLbl{font-size:12px;color:rgba(11,16,34,.55);font-weight:800;margin-top:4px;}
 
-    /* Modal perfil de usuario */
+    /* Perfil edit avatar */
     .profileEditAvatar{
       width:80px;height:80px;border-radius:50%;
       background:linear-gradient(135deg,#0000FF,#4444ff);
       display:flex;align-items:center;justify-content:center;
       font-size:32px;font-weight:900;color:#fff;
-      margin:0 auto 16px;overflow:hidden;
-      cursor:pointer;position:relative;
+      margin:0 auto 16px;overflow:hidden;cursor:pointer;position:relative;
       border:3px solid rgba(0,0,255,.2);
     }
     .profileEditAvatar img{width:100%;height:100%;object-fit:cover;}
     .profileEditAvatar .avatarOverlay{
-      position:absolute;inset:0;
-      background:rgba(0,0,0,.38);
+      position:absolute;inset:0;background:rgba(0,0,0,.38);
       display:flex;align-items:center;justify-content:center;
-      border-radius:50%;opacity:0;transition:opacity .15s;
-      font-size:22px;
+      border-radius:50%;opacity:0;transition:opacity .15s;font-size:22px;
     }
     .profileEditAvatar:hover .avatarOverlay{opacity:1;}
-    .userHandle{
-      font-size:13px;color:#0000FF;font-weight:800;
-      text-align:center;margin-bottom:16px;letter-spacing:.02em;
-    }
+    .userHandle{font-size:13px;color:#0000FF;font-weight:800;text-align:center;margin-bottom:16px;letter-spacing:.02em;}
 
-    /* Vista comunidad */
-    .communityFeed{
-      height:100%;overflow-y:auto;
-      padding:6px 16px 92px;
-      -webkit-overflow-scrolling:touch;
-    }
+    /* Comunidad */
+    .communityFeed{height:100%;overflow-y:auto;padding:6px 16px 92px;-webkit-overflow-scrolling:touch;}
     .feedCard{
-      background:#fff;border-radius:16px;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:0 4px 16px rgba(0,0,0,.08);
-      overflow:hidden;margin-bottom:14px;
+      background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden;margin-bottom:14px;
     }
-    .feedCardHero{
-      height:160px;background:center/cover no-repeat;
-    }
+    .feedCardHero{height:160px;background:center/cover no-repeat;}
     .feedCardBody{padding:12px;}
-    .feedCardAuthor{
-      display:flex;align-items:center;gap:8px;margin-bottom:8px;
-    }
+    .feedCardAuthor{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
+    .feedCardAuthor:hover .feedAuthorName{color:#0000FF;}
     .feedAvatar{
       width:28px;height:28px;border-radius:50%;
       background:linear-gradient(135deg,#0000FF,#4444ff);
@@ -818,22 +592,18 @@
       font-size:11px;font-weight:900;color:#fff;flex:0 0 auto;overflow:hidden;
     }
     .feedAvatar img{width:100%;height:100%;object-fit:cover;}
-    .feedAuthorName{font-size:12px;font-weight:800;color:rgba(11,16,34,.55);}
+    .feedAuthorName{font-size:12px;font-weight:800;color:rgba(11,16,34,.55);transition:color .15s;}
     .feedTitle{font-size:15px;font-weight:850;color:var(--ink);line-height:1.2;}
     .feedMeta{font-size:12px;color:var(--inkMuted);font-weight:650;margin-top:4px;}
 
-    /* Modal buscar usuarios */
+    /* Buscar usuarios */
     .searchUserInput{
       width:100%;border-radius:14px;border:1.5px solid rgba(11,16,34,.12);
       padding:13px 14px;font-size:15px;color:var(--ink);outline:none;
       transition:border-color .15s;margin-bottom:14px;
     }
     .searchUserInput:focus{border-color:#0000FF;}
-    .userResult{
-      display:flex;align-items:center;gap:12px;
-      padding:12px;border-radius:14px;
-      background:#f6f7fb;margin-bottom:8px;
-    }
+    .userResult{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:#f6f7fb;margin-bottom:8px;}
     .userResultAvatar{
       width:40px;height:40px;border-radius:50%;
       background:linear-gradient(135deg,#0000FF,#4444ff);
@@ -841,7 +611,7 @@
       font-size:16px;font-weight:900;color:#fff;flex:0 0 auto;overflow:hidden;
     }
     .userResultAvatar img{width:100%;height:100%;object-fit:cover;}
-    .userResultInfo{flex:1;min-width:0;}
+    .userResultInfo{flex:1;min-width:0;cursor:pointer;}
     .userResultName{font-size:13px;font-weight:900;color:var(--ink);}
     .userResultHandle{font-size:11px;color:#0000FF;font-weight:800;margin-top:2px;}
     .btnFollow{
@@ -849,10 +619,7 @@
       font-size:12px;font-weight:800;cursor:pointer;
       background:#0000FF;color:#fff;flex:0 0 auto;
     }
-    .btnFollow.following{
-      background:#f6f7fb;color:rgba(11,16,34,.65);
-      border:1px solid rgba(0,0,0,.12);
-    }
+    .btnFollow.following{background:#f6f7fb;color:rgba(11,16,34,.65);border:1px solid rgba(0,0,0,.12);}
     .btnFollow:active{transform:translateY(1px);}
     .myCode{
       background:rgba(0,0,255,.06);border:1px solid rgba(0,0,255,.15);
@@ -861,17 +628,78 @@
     }
     .myCode strong{color:#0000FF;font-size:15px;letter-spacing:.04em;}
     .copyCodeBtn{
-      display:inline-block;margin-top:6px;
-      background:none;border:none;cursor:pointer;
-      font-size:11px;font-weight:800;color:#0000FF;padding:0;
+      display:inline-block;margin-top:6px;background:none;border:none;
+      cursor:pointer;font-size:11px;font-weight:800;color:#0000FF;padding:0;
     }
-    .btn{
-      width:100%;border:none;border-radius:999px;padding:16px;
-      font-size:16px;font-weight:750;
-      background:#0000FF;
-      color:#fff;cursor:pointer;
-    }
+    .btn{width:100%;border:none;border-radius:999px;padding:16px;font-size:16px;font-weight:750;background:#0000FF;color:#fff;cursor:pointer;}
     .btn:active{transform:translateY(1px)}
+
+    /* ===== MODAL PERFIL DE OTRO USUARIO ===== */
+    .userProfileBack{
+      position:absolute;inset:0;background:rgba(0,0,0,.55);
+      display:none;align-items:flex-end;justify-content:center;
+      padding:14px;z-index:90;
+      backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    }
+    .userProfileBack.show{display:flex;}
+    .userProfileCard{
+      width:100%;background:#fff;border-radius:24px;
+      padding:0 0 0;box-shadow:var(--shadow);
+      max-height:88vh;overflow-y:auto;
+    }
+    .userProfileHeader{
+      padding:22px 20px 16px;
+      border-bottom:1px solid rgba(0,0,0,.08);
+      display:flex;justify-content:space-between;align-items:flex-start;
+    }
+    .userProfileHeaderInfo{display:flex;align-items:center;gap:14px;}
+    .userProfileBigAvatar{
+      width:64px;height:64px;border-radius:50%;
+      background:linear-gradient(135deg,#0000FF,#4444ff);
+      display:flex;align-items:center;justify-content:center;
+      font-size:26px;font-weight:900;color:#fff;flex:0 0 auto;overflow:hidden;
+      border:3px solid rgba(0,0,255,.15);
+    }
+    .userProfileBigAvatar img{width:100%;height:100%;object-fit:cover;}
+    .userProfileName{font-size:17px;font-weight:900;color:var(--ink);}
+    .userProfileHandle{font-size:12px;color:#0000FF;font-weight:800;margin-top:3px;}
+    .userProfileClose{
+      border:none;width:36px;height:36px;border-radius:50%;
+      background:rgba(0,0,0,.06);cursor:pointer;font-size:16px;color:var(--ink);
+      flex:0 0 auto;
+    }
+    .userProfileStatsRow{
+      display:flex;gap:0;padding:12px 20px;border-bottom:1px solid rgba(0,0,0,.06);
+    }
+    .userProfileStat{flex:1;text-align:center;}
+    .userProfileStat .statNum{font-size:20px;font-weight:950;color:#0000FF;letter-spacing:-.4px;}
+    .userProfileStat .statLbl{font-size:11px;color:rgba(11,16,34,.55);font-weight:800;margin-top:3px;}
+    .userProfileActions{padding:12px 20px;display:flex;gap:10px;border-bottom:1px solid rgba(0,0,0,.06);}
+    .btnFollowFull{
+      flex:1;border:none;border-radius:14px;padding:12px;
+      font-size:14px;font-weight:800;cursor:pointer;background:#0000FF;color:#fff;
+    }
+    .btnFollowFull.following{background:#f6f7fb;color:rgba(11,16,34,.65);border:1px solid rgba(0,0,0,.12);}
+    .btnFollowFull:active{opacity:.85;}
+    .userProfileObjsTitle{padding:12px 20px 6px;font-size:13px;font-weight:900;color:rgba(11,16,34,.78);}
+    .userProfileObjsList{padding:0 12px 12px;display:grid;gap:10px;}
+    .userObjMini{
+      background:#f6f7fb;border-radius:14px;display:flex;gap:0;overflow:hidden;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .userObjMiniImg{width:64px;height:64px;background:center/cover no-repeat;flex:0 0 auto;}
+    .userObjMiniBody{padding:10px;flex:1;min-width:0;}
+    .userObjMiniTitle{font-size:13px;font-weight:850;color:var(--ink);line-height:1.2;}
+    .userObjMiniMeta{font-size:11px;color:rgba(11,16,34,.55);font-weight:700;margin-top:4px;}
+
+    /* Spinner inline */
+    .miniSpinner{
+      display:flex;align-items:center;justify-content:center;padding:24px;
+    }
+    .miniSpinner::after{
+      content:"";width:24px;height:24px;border:3px solid rgba(11,16,34,.12);
+      border-top-color:#0000FF;border-radius:50%;animation:spin .7s linear infinite;
+    }
   </style>
 </head>
 
@@ -897,8 +725,6 @@
 
   <!-- =============== PANTALLA ONBOARDING + AUTH =============== -->
   <div class="screen active" id="screen-auth">
-
-    <!-- Fondo con foto y textos -->
     <section class="onboarding">
       <div class="obLogo">LA LISTA</div>
       <div class="obHero">
@@ -916,26 +742,19 @@
       </div>
     </section>
 
-    <!-- POPUP AUTH MODAL (sobre el onboarding) -->
+    <!-- POPUP AUTH MODAL -->
     <div class="authModalBack" id="authModalBack">
       <div class="authCard">
-
-        <!-- Botón cerrar -->
         <button class="authModalClose" id="authModalClose">✕</button>
-
-        <!-- Spinner -->
         <div class="authSpinner" id="authSpinner"><div class="spinner"></div></div>
-
-        <!-- Tabs -->
         <div class="authTabs">
           <button class="authTab active" id="tabLogin">Entrar</button>
           <button class="authTab" id="tabRegister">Registrarse</button>
         </div>
 
-        <!-- ===== FORM LOGIN ===== -->
+        <!-- FORM LOGIN -->
         <div class="authForm active" id="formLogin">
           <div class="authError" id="loginError"></div>
-
           <div class="authField">
             <label>Correo electrónico</label>
             <input id="loginEmail" type="email" placeholder="tu@correo.com" autocomplete="email" />
@@ -944,23 +763,19 @@
             <label>Contraseña</label>
             <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" />
           </div>
-
           <button class="forgotLink" id="forgotBtn">¿Olvidaste tu contraseña?</button>
           <button class="btnPrimary" id="loginBtn">Entrar →</button>
-
           <div class="authDivider"><span>o continúa con</span></div>
-
           <button class="btnGoogle" id="loginGoogleBtn">
             <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l6-6C34.5 6.4 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.9 5.1C15 16 19.2 13 24 13c3 0 5.7 1.1 7.8 2.9l6-6C34.5 6.4 29.5 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36.5 24 36.5c-5.2 0-9.6-3.4-11.2-8l-6.9 5.3C9.6 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.8l6.2 5.2c3.6-3.4 5.8-8.4 5.8-13.9 0-1.3-.1-2.7-.1-4-.1 0 0-.1 0-.1z"/></svg>
             Continuar con Google
           </button>
         </div>
 
-        <!-- ===== FORM REGISTRO ===== -->
+        <!-- FORM REGISTRO -->
         <div class="authForm" id="formRegister">
           <div class="authError" id="registerError"></div>
           <div class="authSuccess" id="registerSuccess"></div>
-
           <div class="authField">
             <label>Nombre</label>
             <input id="registerName" type="text" placeholder="Tu nombre" autocomplete="name" />
@@ -973,21 +788,16 @@
             <label>Contraseña (mín. 6 caracteres)</label>
             <input id="registerPass" type="password" placeholder="••••••••" autocomplete="new-password" />
           </div>
-
           <button class="btnPrimary" id="registerBtn">Crear cuenta →</button>
-
           <div class="authDivider"><span>o continúa con</span></div>
-
           <button class="btnGoogle" id="registerGoogleBtn">
             <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l6-6C34.5 6.4 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.9 5.1C15 16 19.2 13 24 13c3 0 5.7 1.1 7.8 2.9l6-6C34.5 6.4 29.5 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36.5 24 36.5c-5.2 0-9.6-3.4-11.2-8l-6.9 5.3C9.6 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.8l6.2 5.2c3.6-3.4 5.8-8.4 5.8-13.9 0-1.3-.1-2.7-.1-4-.1 0 0-.1 0-.1z"/></svg>
             Continuar con Google
           </button>
         </div>
-
-      </div><!-- /authCard -->
-    </div><!-- /authModalBack -->
-
-  </div><!-- /screen-auth -->
+      </div>
+    </div>
+  </div>
 
   <!-- =============== APP =============== -->
   <div class="screen" id="screen-app">
@@ -1032,17 +842,16 @@
         </div>
         <div class="content" id="view-profile" style="display:none;">
           <div class="profileWrap">
-            <!-- User info card -->
             <div class="userCard" id="userCard">
               <div class="userAvatar" id="userAvatar">?</div>
-              <div>
+              <div style="flex:1;">
                 <div class="userName" id="userName">—</div>
                 <div class="userEmail" id="userEmail">—</div>
                 <div style="font-size:11px;color:#0000FF;font-weight:800;margin-top:2px;" id="userHandleDisplay"></div>
               </div>
+              <div style="font-size:18px;color:rgba(11,16,34,.30);">✏️</div>
             </div>
 
-            <!-- Seguidores / Seguidos -->
             <div class="socialGrid">
               <div class="socialCard" id="followersCard">
                 <div class="sNum" id="followersCount">0</div>
@@ -1065,8 +874,6 @@
             <div class="list" id="listPend"></div>
             <div class="sectionTitle" style="margin-top:14px;">Cumplidos</div>
             <div class="list" id="listDone"></div>
-
-            <!-- Cerrar sesión al final -->
             <button class="btnSignOut" id="signOutBtn">Cerrar sesión</button>
           </div>
         </div>
@@ -1149,23 +956,19 @@
             <div class="modalHead"><strong>Nuevo objetivo</strong><button class="close" id="wizardClose">✕</button></div>
             <div class="modalBody">
               <div class="wizardDots" id="wizardDots"></div>
-
               <div class="wizardStep active" data-step="0">
                 <div class="smallNote">Paso 1 · Título</div>
                 <div class="field"><label>Título</label><input id="wTitle" type="text" placeholder="Ej: Dormir en un iglú" /></div>
               </div>
-
               <div class="wizardStep" data-step="1">
                 <div class="smallNote">Paso 2 · Categoría + Coste</div>
                 <div class="field"><label>Categoría</label><select id="wCat"><option>Viajes</option><option>Experiencias</option><option>Familia</option><option>Trabajo</option></select></div>
                 <div class="field"><label>Coste (€)</label><input id="wCost" type="number" min="0" step="1" placeholder="0" /></div>
               </div>
-
               <div class="wizardStep" data-step="2">
                 <div class="smallNote">Paso 3 · Descripción</div>
                 <div class="field"><label>Descripción</label><textarea id="wDesc" placeholder="¿Por qué lo quieres hacer?"></textarea></div>
               </div>
-
               <div class="wizardStep" data-step="3">
                 <div class="smallNote">Paso 4 · Lugar + Coordenadas (opcional)</div>
                 <div class="field"><label>Lugar</label><input id="wPlace" type="text" placeholder="Ej: Tromsø, Noruega" /></div>
@@ -1174,13 +977,11 @@
                   <div class="field"><label>Lng</label><input id="wLng" type="number" step="0.000001" placeholder="18.9553" /></div>
                 </div>
               </div>
-
               <div class="wizardStep" data-step="4">
                 <div class="smallNote">Paso 5 · Visibilidad</div>
                 <div class="switchRow" style="margin-bottom:12px;"><span>🌍 Objetivo público (lo verán tus seguidores)</span><input id="wPublic" type="checkbox" checked /></div>
                 <div class="smallNote">Los objetivos privados solo los ves tú.</div>
               </div>
-
               <div class="wizardStep" data-step="5">
                 <div class="smallNote">Paso 6 · Foto de portada</div>
                 <div class="field">
@@ -1206,20 +1007,17 @@
           <div class="modal">
             <div class="modalHead"><strong>Mi perfil</strong><button class="close" id="profileEditClose">✕</button></div>
             <div class="modalBody">
-              <!-- Avatar clickable -->
               <div class="profileEditAvatar" id="peAvatar">
                 <span id="peAvatarInitial">?</span>
                 <div class="avatarOverlay">📷</div>
               </div>
               <input class="hiddenInput" id="peAvatarFile" type="file" accept="image/*" />
               <div class="userHandle" id="peCodeDisplay"></div>
-
               <div class="myCode">
                 <div style="font-size:11px;font-weight:800;color:rgba(11,16,34,.55);margin-bottom:4px;">TU CÓDIGO · Compártelo para que te encuentren</div>
                 <strong id="peCodeValue">—</strong><br>
                 <button class="copyCodeBtn" id="copyCodeBtn">📋 Copiar código</button>
               </div>
-
               <div class="form">
                 <div class="field">
                   <label>Nombre de usuario</label>
@@ -1256,13 +1054,50 @@
           <div class="modal">
             <div class="modalHead"><strong id="socialListTitle">Seguidores</strong><button class="close" id="socialListClose">✕</button></div>
             <div class="modalBody">
-              <div class="miniList" id="socialListContent"></div>
+              <div id="socialListContent"></div>
             </div>
             <div class="modalActions"><button class="primary" id="socialListClose2">Cerrar</button></div>
           </div>
         </div>
 
-      </div>
+        <!-- PERFIL DE OTRO USUARIO MODAL -->
+        <div class="userProfileBack" id="userProfileBack">
+          <div class="userProfileCard">
+            <div class="userProfileHeader">
+              <div class="userProfileHeaderInfo">
+                <div class="userProfileBigAvatar" id="upAvatar">?</div>
+                <div>
+                  <div class="userProfileName" id="upName">—</div>
+                  <div class="userProfileHandle" id="upHandle">—</div>
+                </div>
+              </div>
+              <button class="userProfileClose" id="userProfileClose">✕</button>
+            </div>
+            <div class="userProfileStatsRow">
+              <div class="userProfileStat">
+                <div class="statNum" id="upFollowers">0</div>
+                <div class="statLbl">Seguidores</div>
+              </div>
+              <div class="userProfileStat">
+                <div class="statNum" id="upFollowing">0</div>
+                <div class="statLbl">Siguiendo</div>
+              </div>
+              <div class="userProfileStat">
+                <div class="statNum" id="upObjCount">0</div>
+                <div class="statLbl">Objetivos</div>
+              </div>
+            </div>
+            <div class="userProfileActions">
+              <button class="btnFollowFull" id="upFollowBtn">Seguir</button>
+            </div>
+            <div class="userProfileObjsTitle">Objetivos públicos</div>
+            <div class="userProfileObjsList" id="upObjsList">
+              <div class="miniSpinner"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /appShell -->
 
       <div class="nav">
         <div class="navInner">
@@ -1318,9 +1153,7 @@
 const BASE_KEY = "lalista_v6_";
 let currentUid = null;
 
-function storageKey(){
-  return BASE_KEY + (currentUid || "guest");
-}
+function storageKey(){ return BASE_KEY + (currentUid || "guest"); }
 function loadObjetivos(){
   try{
     const raw = localStorage.getItem(storageKey());
@@ -1329,9 +1162,7 @@ function loadObjetivos(){
     return Array.isArray(d) ? d : [];
   }catch(e){ return []; }
 }
-function saveObjetivos(){
-  localStorage.setItem(storageKey(), JSON.stringify(objetivos));
-}
+function saveObjetivos(){ localStorage.setItem(storageKey(), JSON.stringify(objetivos)); }
 
 let objetivos = [];
 
@@ -1347,7 +1178,7 @@ function escapeHTML(str){
 function firstImg(o){ return (o.imgs && o.imgs.length) ? o.imgs[0] : ""; }
 
 /* ================================================================
-   FIREBASE AUTH — espera a que el módulo esté listo
+   FIREBASE AUTH
 ================================================================ */
 function waitFirebase(cb){
   if(window._fbOnAuthStateChanged){ cb(); }
@@ -1355,10 +1186,12 @@ function waitFirebase(cb){
 }
 
 waitFirebase(() => {
-  window._fbOnAuthStateChanged(user => {
+  window._fbOnAuthStateChanged(async user => {
     if(user){
       currentUid = user.uid;
       objetivos = loadObjetivos();
+      // Ensure user profile exists in Firestore
+      await ensureFirestoreProfile(user);
       showAppScreen(user);
     } else {
       currentUid = null;
@@ -1368,21 +1201,115 @@ waitFirebase(() => {
 });
 
 /* ================================================================
+   FIRESTORE PROFILE MANAGEMENT
+================================================================ */
+function genCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for(let i=0;i<8;i++) c += chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+
+// In-memory cache of fetched profiles
+const profileCache = {};
+
+async function ensureFirestoreProfile(user){
+  try{
+    let profile = await window._fsGetUser(user.uid);
+    if(!profile){
+      // New user — create profile
+      const code = genCode();
+      profile = {
+        uid: user.uid,
+        username: user.displayName || "",
+        code,
+        avatarData: user.photoURL || "",
+        following: [],
+        followers: []
+      };
+      await window._fsSetUser(user.uid, profile);
+    }
+    profileCache[user.uid] = profile;
+    return profile;
+  }catch(e){
+    console.warn("Firestore profile init error:", e);
+    return null;
+  }
+}
+
+async function getMyProfile(){
+  if(!currentUid) return null;
+  if(profileCache[currentUid]) return profileCache[currentUid];
+  try{
+    const p = await window._fsGetUser(currentUid);
+    if(p) profileCache[currentUid] = p;
+    return p;
+  }catch(e){ return null; }
+}
+
+async function saveMyProfile(data){
+  if(!currentUid) return;
+  const current = await getMyProfile() || {};
+  const updated = { ...current, ...data };
+  profileCache[currentUid] = updated;
+  await window._fsSetUser(currentUid, updated);
+}
+
+async function getProfileByUid(uid){
+  if(profileCache[uid]) return profileCache[uid];
+  try{
+    const p = await window._fsGetUser(uid);
+    if(p) profileCache[uid] = { uid, ...p };
+    return p ? { uid, ...p } : null;
+  }catch(e){ return null; }
+}
+
+async function isFollowing(targetUid){
+  const me = await getMyProfile();
+  return me ? (me.following||[]).includes(targetUid) : false;
+}
+
+async function followUser(targetUid){
+  if(!currentUid || targetUid === currentUid) return;
+  try{
+    await window._fsFollow(currentUid, targetUid);
+    // Update cache
+    const me = profileCache[currentUid];
+    if(me){
+      if(!me.following) me.following = [];
+      if(!me.following.includes(targetUid)) me.following.push(targetUid);
+    }
+    const them = profileCache[targetUid];
+    if(them){
+      if(!them.followers) them.followers = [];
+      if(!them.followers.includes(currentUid)) them.followers.push(currentUid);
+    }
+  }catch(e){ console.warn("Follow error:", e); }
+}
+
+async function unfollowUser(targetUid){
+  if(!currentUid) return;
+  try{
+    await window._fsUnfollow(currentUid, targetUid);
+    const me = profileCache[currentUid];
+    if(me) me.following = (me.following||[]).filter(id=>id!==targetUid);
+    const them = profileCache[targetUid];
+    if(them) them.followers = (them.followers||[]).filter(id=>id!==currentUid);
+  }catch(e){ console.warn("Unfollow error:", e); }
+}
+
+/* ================================================================
    AUTH SCREEN LOGIC
 ================================================================ */
-const screenAuth = $("#screen-auth");
-const screenApp  = $("#screen-app");
+const screenAuth   = $("#screen-auth");
+const screenApp    = $("#screen-app");
 const screenDetail = $("#screen-detail");
 
-/* ---- Popup auth helpers ---- */
 function openAuthModal(tab){
-  // tab: "login" | "register"
   switchAuthTab(tab || "login");
   $("#authModalBack").classList.add("show");
 }
-function closeAuthModal(){
-  $("#authModalBack").classList.remove("show");
-}
+function closeAuthModal(){ $("#authModalBack").classList.remove("show"); }
 function switchAuthTab(tab){
   const isLogin = tab === "login";
   $("#tabLogin").classList.toggle("active", isLogin);
@@ -1391,15 +1318,10 @@ function switchAuthTab(tab){
   $("#formRegister").classList.toggle("active", !isLogin);
 }
 
-// Botones del onboarding
 $("#openLoginBtn").addEventListener("click", () => openAuthModal("login"));
 $("#openRegisterBtn").addEventListener("click", () => openAuthModal("register"));
-
-// Cerrar popup
 $("#authModalClose").addEventListener("click", closeAuthModal);
-$("#authModalBack").addEventListener("click", e => {
-  if(e.target === $("#authModalBack")) closeAuthModal();
-});
+$("#authModalBack").addEventListener("click", e => { if(e.target === $("#authModalBack")) closeAuthModal(); });
 
 function showAuthScreen(){
   screenAuth.classList.add("active");
@@ -1413,105 +1335,18 @@ function showAppScreen(user){
   screenAuth.classList.remove("active");
   screenApp.classList.add("active");
   screenDetail.classList.remove("active");
-  updateUserUI(user);
+  updateUserUI();
   renderHome("Todos");
   showView("home");
 }
 
 /* ================================================================
-   SOCIAL PROFILE SYSTEM (localStorage)
+   updateUserUI — uses Firestore profile
 ================================================================ */
-const PROFILES_KEY = "lalista_profiles_v1";
-
-function genCode(){
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let c = "";
-  for(let i=0;i<8;i++) c += chars[Math.floor(Math.random()*chars.length)];
-  return c;
-}
-
-function loadAllProfiles(){
-  try{ return JSON.parse(localStorage.getItem(PROFILES_KEY)||"{}"); }
-  catch(e){ return {}; }
-}
-function saveAllProfiles(profiles){ localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); }
-
-function getMyProfile(){
-  if(!currentUid) return null;
-  const profiles = loadAllProfiles();
-  if(!profiles[currentUid]){
-    profiles[currentUid] = {
-      uid: currentUid,
-      username: "",
-      code: genCode(),
-      avatarData: "",
-      following: [],
-      followers: []
-    };
-    saveAllProfiles(profiles);
-  }
-  return profiles[currentUid];
-}
-
-function saveMyProfile(data){
-  if(!currentUid) return;
-  const profiles = loadAllProfiles();
-  profiles[currentUid] = { ...getMyProfile(), ...data };
-  saveAllProfiles(profiles);
-}
-
-function findUserByCode(code){
-  const profiles = loadAllProfiles();
-  return Object.values(profiles).find(p => p.code === code.trim().toUpperCase()) || null;
-}
-
-function followUser(targetUid){
-  const profiles = loadAllProfiles();
-  const me = getMyProfile();
-  if(!me || targetUid === currentUid) return;
-  if(!me.following.includes(targetUid)) me.following.push(targetUid);
-  profiles[currentUid] = me;
-  // Add me to target's followers
-  if(profiles[targetUid]){
-    if(!profiles[targetUid].followers) profiles[targetUid].followers = [];
-    if(!profiles[targetUid].followers.includes(currentUid))
-      profiles[targetUid].followers.push(currentUid);
-  }
-  saveAllProfiles(profiles);
-}
-
-function unfollowUser(targetUid){
-  const profiles = loadAllProfiles();
-  const me = getMyProfile();
-  if(!me) return;
-  me.following = me.following.filter(id => id !== targetUid);
-  profiles[currentUid] = me;
-  if(profiles[targetUid]){
-    profiles[targetUid].followers = (profiles[targetUid].followers||[]).filter(id => id !== currentUid);
-  }
-  saveAllProfiles(profiles);
-}
-
-function isFollowing(targetUid){
-  const me = getMyProfile();
-  return me ? me.following.includes(targetUid) : false;
-}
-
-function getPublicObjectivesOf(uid){
-  try{
-    const raw = localStorage.getItem(BASE_KEY + uid);
-    if(!raw) return [];
-    const d = JSON.parse(raw);
-    return Array.isArray(d) ? d.filter(o => o.isPublic !== false) : [];
-  }catch(e){ return []; }
-}
-
-/* ================================================================
-   updateUserUI — now uses social profile
-================================================================ */
-function updateUserUI(user){
+async function updateUserUI(){
+  const user = window._fbAuth?.currentUser;
   if(!user) return;
-  const profile = getMyProfile();
+  const profile = await getMyProfile();
 
   const nameEl   = $("#userName");
   const emailEl  = $("#userEmail");
@@ -1532,7 +1367,6 @@ function updateUserUI(user){
     }
   }
 
-  // Social counts
   const followersEl = $("#followersCount");
   const followingEl = $("#followingCount");
   if(followersEl) followersEl.textContent = (profile?.followers||[]).length;
@@ -1544,253 +1378,228 @@ function setAuthLoading(on){
   $$("#formLogin .btnPrimary, #formLogin .btnGoogle, #formRegister .btnPrimary, #formRegister .btnGoogle")
     .forEach(b => b.disabled = on);
 }
-
 function showAuthError(el, msg){ el.textContent = msg; el.classList.add("show"); }
 function clearAuthError(el){ el.textContent = ""; el.classList.remove("show"); }
-
 function friendlyError(code){
   const map = {
-    "auth/invalid-email":           "Correo electrónico no válido.",
-    "auth/user-not-found":          "No existe cuenta con ese correo.",
-    "auth/wrong-password":          "Contraseña incorrecta.",
-    "auth/invalid-credential":      "Correo o contraseña incorrectos.",
-    "auth/email-already-in-use":    "Ya existe una cuenta con ese correo.",
-    "auth/weak-password":           "La contraseña debe tener al menos 6 caracteres.",
-    "auth/popup-closed-by-user":    "Ventana cerrada. Inténtalo de nuevo.",
-    "auth/cancelled-popup-request": "Solicitud cancelada.",
-    "auth/network-request-failed":  "Error de red. Comprueba tu conexión.",
-    "auth/too-many-requests":       "Demasiados intentos. Espera un momento.",
+    "auth/invalid-email":"Correo electrónico no válido.",
+    "auth/user-not-found":"No existe cuenta con ese correo.",
+    "auth/wrong-password":"Contraseña incorrecta.",
+    "auth/invalid-credential":"Correo o contraseña incorrectos.",
+    "auth/email-already-in-use":"Ya existe una cuenta con ese correo.",
+    "auth/weak-password":"La contraseña debe tener al menos 6 caracteres.",
+    "auth/popup-closed-by-user":"Ventana de Google cerrada.",
+    "auth/cancelled-popup-request":"Ventana de Google cerrada.",
+    "auth/network-request-failed":"Error de red. Comprueba tu conexión.",
+    "auth/too-many-requests":"Demasiados intentos. Espera un momento."
   };
-  return map[code] || "Error inesperado (" + code + ").";
+  return map[code] || "Error inesperado. Inténtalo de nuevo.";
 }
 
-// Tabs dentro del popup
-$("#tabLogin").addEventListener("click", () => switchAuthTab("login"));
-$("#tabRegister").addEventListener("click", () => switchAuthTab("register"));
-
-// Login email
+// LOGIN
 $("#loginBtn").addEventListener("click", async () => {
-  const email = $("#loginEmail").value.trim();
-  const pass  = $("#loginPass").value;
+  const e = $("#loginEmail").value.trim();
+  const p = $("#loginPass").value;
   const errEl = $("#loginError");
   clearAuthError(errEl);
-  if(!email || !pass){ showAuthError(errEl, "Rellena el correo y la contraseña."); return; }
+  if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
   setAuthLoading(true);
   try{
-    await window._fbSignInEmail(email, pass);
-    // onAuthStateChanged se encarga del resto
-  }catch(e){
-    showAuthError(errEl, friendlyError(e.code));
-  }finally{
-    setAuthLoading(false);
-  }
+    await window._fbSignInEmail(e,p);
+  }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
+  finally{ setAuthLoading(false); }
 });
 
-// Enter en campos de login
-["loginEmail","loginPass"].forEach(id => {
-  $(("#" + id)).addEventListener("keydown", e => { if(e.key === "Enter") $("#loginBtn").click(); });
-});
-
-// Registro email
-$("#registerBtn").addEventListener("click", async () => {
-  const name  = $("#registerName").value.trim();
-  const email = $("#registerEmail").value.trim();
-  const pass  = $("#registerPass").value;
-  const errEl = $("#registerError");
-  const okEl  = $("#registerSuccess");
+// FORGOT
+$("#forgotBtn").addEventListener("click", async () => {
+  const e = $("#loginEmail").value.trim();
+  const errEl = $("#loginError");
   clearAuthError(errEl);
-  okEl.classList.remove("show");
-  if(!name){ showAuthError(errEl, "Escribe tu nombre."); return; }
-  if(!email || !pass){ showAuthError(errEl, "Rellena todos los campos."); return; }
+  if(!e){ showAuthError(errEl,"Introduce tu correo primero."); return; }
   setAuthLoading(true);
   try{
-    await window._fbRegister(email, pass);
-    await window._fbUpdateProfile({ displayName: name });
-    // onAuthStateChanged se encarga de entrar
-  }catch(e){
-    showAuthError(errEl, friendlyError(e.code));
-  }finally{
-    setAuthLoading(false);
-  }
+    await window._fbResetPassword(e);
+    showAuthError(errEl,"");
+    errEl.classList.remove("show");
+    const s = document.createElement("div");
+    s.className="authSuccess show";
+    s.textContent="Email de recuperación enviado ✅";
+    errEl.after(s); setTimeout(()=>s.remove(),4000);
+  }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
+  finally{ setAuthLoading(false); }
 });
 
-// Enter en campos de registro
-["registerName","registerEmail","registerPass"].forEach(id => {
-  $(("#" + id)).addEventListener("keydown", e => { if(e.key === "Enter") $("#registerBtn").click(); });
-});
-
-// Google login
-function handleGoogleLogin(){
+// GOOGLE LOGIN
+async function handleGoogleLogin(){
+  const errEl = $("#loginError");
+  clearAuthError(errEl);
   setAuthLoading(true);
-  window._fbGoogleLogin()
-    .catch(e => {
-      const errEl = $("#formLogin").classList.contains("active") ? $("#loginError") : $("#registerError");
-      showAuthError(errEl, friendlyError(e.code));
-    })
-    .finally(() => setAuthLoading(false));
+  try{ await window._fbGoogleLogin(); }
+  catch(err){ showAuthError(errEl, friendlyError(err.code)); }
+  finally{ setAuthLoading(false); }
 }
 $("#loginGoogleBtn").addEventListener("click", handleGoogleLogin);
 $("#registerGoogleBtn").addEventListener("click", handleGoogleLogin);
 
-// Olvidé contraseña
-$("#forgotBtn").addEventListener("click", async () => {
-  const email = $("#loginEmail").value.trim();
-  const errEl = $("#loginError");
+// REGISTER
+$("#registerBtn").addEventListener("click", async () => {
+  const name  = $("#registerName").value.trim();
+  const e     = $("#registerEmail").value.trim();
+  const p     = $("#registerPass").value;
+  const errEl = $("#registerError");
+  const okEl  = $("#registerSuccess");
   clearAuthError(errEl);
-  if(!email){ showAuthError(errEl, "Escribe primero tu correo."); return; }
+  if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
   setAuthLoading(true);
   try{
-    await window._fbResetPassword(email);
-    clearAuthError(errEl);
-    const okEl = document.createElement("div");
-    okEl.className = "authSuccess show";
-    okEl.textContent = "✉️ Correo de recuperación enviado. Revisa tu bandeja.";
-    $("#formLogin").insertBefore(okEl, $("#formLogin").firstChild);
-    setTimeout(() => okEl.remove(), 6000);
-  }catch(e){
-    showAuthError(errEl, friendlyError(e.code));
-  }finally{
-    setAuthLoading(false);
-  }
+    const cred = await window._fbRegister(e,p);
+    if(name) await window._fbUpdateProfile({ displayName: name });
+    okEl.textContent="¡Cuenta creada! Iniciando sesión…"; okEl.classList.add("show");
+  }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
+  finally{ setAuthLoading(false); }
 });
 
-// Cerrar sesión
+// TABS
+$("#tabLogin").addEventListener("click",    () => switchAuthTab("login"));
+$("#tabRegister").addEventListener("click", () => switchAuthTab("register"));
+
+// SIGN OUT
 $("#signOutBtn").addEventListener("click", async () => {
   if(!confirm("¿Cerrar sesión?")) return;
   await window._fbSignOut();
 });
 
 /* ================================================================
-   SCREENS / VIEWS
+   NAV & VIEWS
 ================================================================ */
-const pageTitle  = $("#pageTitle");
-const homeHeader = $("#homeHeader");
-const viewHome    = $("#view-home");
-const viewCompass = $("#view-compass");
-const viewProfile = $("#view-profile");
 let currentView = "home";
+let viewMode = "carousel";
+let leafletMap = null;
 
-function showOnly(view){
-  viewHome.style.display    = view === "home"    ? "block" : "none";
-  viewCompass.style.display = view === "compass" ? "block" : "none";
-  viewProfile.style.display = view === "profile" ? "block" : "none";
+function showView(name){
+  currentView = name;
+  $$("#view-home, #view-compass, #view-profile").forEach(v => v.style.display="none");
+  const el = $("#view-"+name);
+  if(el) el.style.display="block";
+  $$(".navBtn").forEach(b => b.classList.toggle("active", b.dataset.nav===name));
+
+  const pageTitle = $("#pageTitle");
+  if(name==="home")    { pageTitle.textContent="Mis objetivos"; $("#homeHeader").style.display=""; }
+  if(name==="compass") { pageTitle.textContent="Mapa"; $("#homeHeader").style.display="none"; initMap(); }
+  if(name==="profile") { pageTitle.textContent="Perfil"; $("#homeHeader").style.display="none"; renderProfile(); }
 }
-function setNavActive(which){
-  $$(".navBtn").forEach(b => b.classList.remove("active"));
-  const b = document.querySelector('.navBtn[data-nav="' + which + '"]');
-  if(b) b.classList.add("active");
-}
-function showView(which){
-  currentView = which;
-  setNavActive(which);
-  if(which === "home"){
-    pageTitle.textContent = "Mis objetivos";
-    homeHeader.style.display = "block";
-    showOnly("home");
-  } else if(which === "compass"){
-    pageTitle.textContent = "Mapa";
-    homeHeader.style.display = "none";
-    showOnly("compass");
-    initMapIfNeeded();
-    setTimeout(() => { if(map){ map.invalidateSize(); renderMapMarkers(); } }, 60);
-  } else if(which === "profile"){
-    pageTitle.textContent = "Perfil";
-    homeHeader.style.display = "none";
-    showOnly("profile");
-    renderProfile();
-    if(window._fbAuth && window._fbAuth.currentUser) updateUserUI(window._fbAuth.currentUser);
-  }
-}
+
 $$(".navBtn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.nav)));
-
-// ⚙️ context-aware: home → ajustes objetivos, perfil → editar perfil
-$("#gearBtn").addEventListener("click", () => {
-  if(currentView === "profile"){
-    openProfileEdit();
-  } else {
-    openSettings();
-  }
-});
-
-// Mapa — botón volver
 $("#mapBackBtn").addEventListener("click", () => showView("home"));
 
+function initMap(){
+  if(leafletMap) return;
+  leafletMap = L.map("map",{zoomControl:true,attributionControl:false}).setView([20,0],2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(leafletMap);
+  refreshMap();
+}
+function refreshMap(){
+  if(!leafletMap) return;
+  leafletMap.eachLayer(l => { if(l instanceof L.Marker) leafletMap.removeLayer(l); });
+  objetivos.forEach(o => {
+    if(o.lat==null||o.lng==null) return;
+    L.marker([o.lat,o.lng]).addTo(leafletMap)
+      .bindPopup('<b>'+escapeHTML(o.titulo)+'</b><br>'+escapeHTML(o.cat)+(o.done?" · ✅":""));
+  });
+}
+
 /* ================================================================
-   HOME
+   RENDER HOME
 ================================================================ */
-const carousel = $("#carousel");
+const carousel         = $("#carousel");
 const listViewContainer = $("#listViewContainer");
-const communityFeed = $("#communityFeed");
+const communityFeed    = $("#communityFeed");
 let currentCat = "Todos";
-let viewMode = "carousel"; // "carousel" | "list"
+
+function refreshEverywhere(){
+  saveObjetivos();
+  // Sync public objectives to Firestore
+  if(currentUid && window._fsSaveObjective){
+    objetivos.forEach(o => {
+      window._fsSaveObjective(currentUid, o).catch(()=>{});
+    });
+  }
+  renderHome(currentCat);
+  if(currentView==="compass") refreshMap();
+  if(currentView==="profile") renderProfile();
+}
 
 function renderHome(cat){
-  cat = cat || "Todos";
-  currentCat = cat;
+  currentCat = cat||"Todos";
+  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.cat===currentCat));
 
-  if(cat === "Comunidad"){
-    // Hide regular views, show community feed
-    carousel.classList.add("hidden");
-    listViewContainer.classList.remove("active");
-    communityFeed.style.display = "block";
-    $("#homeActionsBar").style.display = "none";
+  if(currentCat==="Comunidad"){
+    carousel.style.display="none";
+    listViewContainer.style.display="none";
+    communityFeed.style.display="block";
+    $("#homeActionsBar").style.display="none";
     renderCommunityFeed();
     return;
   }
 
-  // Normal view
-  communityFeed.style.display = "none";
-  $("#homeActionsBar").style.display = "flex";
+  communityFeed.style.display="none";
+  $("#homeActionsBar").style.display="flex";
+  carousel.style.display="";
+  listViewContainer.style.display="";
 
-  const list = objetivos.filter(o => cat === "Todos" || o.cat === cat);
+  const list = objetivos.filter(o => cat==="Todos" || o.cat===cat);
 
-  // Carrusel
   carousel.innerHTML = list.map(o =>
-    '<article class="objCard ' + (o.done?"done":"") + '" data-id="' + o.id + '">'
-    + '<div class="objImg" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
-    + '<div class="objBody"><div>'
-    + '<div class="objTitle">' + escapeHTML(o.titulo) + '</div>'
-    + '<div class="objMeta">' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.place ? " · " + escapeHTML(o.place) : "") + '</div>'
-    + '</div><div class="badge ' + (o.done?"done":"") + '">' + (o.done?"Cumplido":o.cat) + '</div></div></article>'
+    '<article class="objCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
+    +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+    +'<div class="objBody"><div>'
+    +'<div class="objTitle">'+escapeHTML(o.titulo)+'</div>'
+    +'<div class="objMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
+    +'</div><div class="badge '+(o.done?"done":"")+'">'+( o.done?"Cumplido":o.cat)+'</div></div></article>'
   ).join("");
   carousel.scrollTo({left:0,behavior:"auto"});
 
-  // Vista lista
   listViewContainer.innerHTML = list.map(o =>
-    '<div class="listObjCard ' + (o.done?"done":"") + '" data-id="' + o.id + '">'
-    + '<div class="listObjImg" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
-    + '<div class="listObjBody">'
-    + '<div class="listObjTitle">' + escapeHTML(o.titulo) + '</div>'
-    + '<div class="listObjMeta">' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.place ? " · " + escapeHTML(o.place) : "") + '</div>'
-    + '<div class="listObjBadge ' + (o.done?"done":"") + '">' + (o.done?"Cumplido":"Pendiente") + '</div>'
-    + '</div></div>'
+    '<div class="listObjCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
+    +'<div class="listObjImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+    +'<div class="listObjBody">'
+    +'<div class="listObjTitle">'+escapeHTML(o.titulo)+'</div>'
+    +'<div class="listObjMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
+    +'<div class="listObjBadge '+(o.done?"done":"")+'">'+( o.done?"Cumplido":"Pendiente")+'</div>'
+    +'</div></div>'
   ).join("") || '<div style="padding:24px 0;text-align:center;color:rgba(11,16,34,.40);font-size:13px;font-weight:700;">No hay objetivos aquí todavía.</div>';
 
   applyViewMode();
 }
 
-function renderCommunityFeed(){
-  const me = getMyProfile();
-  const following = me ? me.following : [];
+async function renderCommunityFeed(){
+  communityFeed.innerHTML = '<div class="miniSpinner"></div>';
+  const me = await getMyProfile();
+  const following = me ? (me.following||[]) : [];
 
   if(!following.length){
     communityFeed.innerHTML = '<div style="padding:40px 16px;text-align:center;">'
-      + '<div style="font-size:40px;margin-bottom:12px;">👥</div>'
-      + '<div style="font-size:15px;font-weight:800;color:var(--ink);margin-bottom:8px;">Aún no sigues a nadie</div>'
-      + '<div style="font-size:13px;color:rgba(11,16,34,.55);font-weight:700;">Busca usuarios con el 🔍 y síguelos para ver sus objetivos públicos aquí.</div>'
-      + '</div>';
+      +'<div style="font-size:40px;margin-bottom:12px;">👥</div>'
+      +'<div style="font-size:15px;font-weight:800;color:var(--ink);margin-bottom:8px;">Aún no sigues a nadie</div>'
+      +'<div style="font-size:13px;color:rgba(11,16,34,.55);font-weight:700;">Busca usuarios con el 🔍 y síguelos para ver sus objetivos públicos aquí.</div>'
+      +'</div>';
     return;
   }
 
-  const profiles = loadAllProfiles();
+  // Load profiles and objectives in parallel
+  const results = await Promise.allSettled(
+    following.map(uid => Promise.all([
+      getProfileByUid(uid),
+      window._fsGetPublicObjectives(uid)
+    ]))
+  );
+
   let cards = [];
-  following.forEach(uid => {
-    const profile = profiles[uid];
-    if(!profile) return;
-    const objs = getPublicObjectivesOf(uid);
-    objs.forEach(o => {
-      cards.push({ o, profile });
-    });
+  results.forEach(r => {
+    if(r.status==="fulfilled" && r.value[0]){
+      const [profile, objs] = r.value;
+      objs.forEach(o => cards.push({ o, profile }));
+    }
   });
 
   if(!cards.length){
@@ -1798,42 +1607,46 @@ function renderCommunityFeed(){
     return;
   }
 
-  // Sort: cumplidos al fondo
   cards.sort((a,b) => (a.o.done?1:0) - (b.o.done?1:0));
 
   communityFeed.innerHTML = cards.map(({o, profile}) => {
     const avatarHtml = profile.avatarData
-      ? '<img src="' + profile.avatarData + '" alt="av">'
+      ? '<img src="'+profile.avatarData+'" alt="av">'
       : (profile.username||"?")[0].toUpperCase();
+    const uid = profile.uid || "";
     return '<div class="feedCard">'
-      + '<div class="feedCardHero" style="background-image:url(\'' + firstImg(o) + '\')"></div>'
-      + '<div class="feedCardBody">'
-      + '<div class="feedCardAuthor">'
-      + '<div class="feedAvatar">' + avatarHtml + '</div>'
-      + '<span class="feedAuthorName">@' + escapeHTML(profile.username||"usuario") + '</span>'
-      + '</div>'
-      + '<div class="feedTitle">' + escapeHTML(o.titulo) + '</div>'
-      + '<div class="feedMeta">' + escapeHTML(o.cat) + ' · ' + eur(o.coste) + (o.done?' · ✅ Cumplido':'') + '</div>'
-      + '</div></div>';
+      +'<div class="feedCardHero" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+      +'<div class="feedCardBody">'
+      +'<div class="feedCardAuthor" data-profile-uid="'+uid+'">'
+      +'<div class="feedAvatar">'+avatarHtml+'</div>'
+      +'<span class="feedAuthorName">@'+escapeHTML(profile.username||"usuario")+'</span>'
+      +'</div>'
+      +'<div class="feedTitle">'+escapeHTML(o.titulo)+'</div>'
+      +'<div class="feedMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.done?' · ✅ Cumplido':'')+'</div>'
+      +'</div></div>';
   }).join("");
 }
 
+communityFeed.addEventListener("click", e => {
+  const author = e.target.closest("[data-profile-uid]");
+  if(author && author.dataset.profileUid) openUserProfile(author.dataset.profileUid);
+});
+
 function applyViewMode(){
   const btn = $("#viewToggleBtn");
-  if(viewMode === "carousel"){
+  if(viewMode==="carousel"){
     carousel.classList.remove("hidden");
     listViewContainer.classList.remove("active");
-    if(btn) btn.textContent = "☰";
+    if(btn) btn.textContent="☰";
   } else {
     carousel.classList.add("hidden");
     listViewContainer.classList.add("active");
-    if(btn) btn.textContent = "⊟";
+    if(btn) btn.textContent="⊟";
   }
 }
 
-// Botón cambio de vista
 $("#viewToggleBtn").addEventListener("click", () => {
-  viewMode = (viewMode === "carousel") ? "list" : "carousel";
+  viewMode = (viewMode==="carousel") ? "list" : "carousel";
   applyViewMode();
 });
 
@@ -1847,55 +1660,318 @@ carousel.addEventListener("click", e => {
   const card = e.target.closest(".objCard");
   if(card) openDetail(Number(card.dataset.id));
 });
-
 listViewContainer.addEventListener("click", e => {
   const card = e.target.closest(".listObjCard");
   if(card) openDetail(Number(card.dataset.id));
 });
 
 /* ================================================================
-   PROFILE
+   PROFILE (my own)
 ================================================================ */
-function renderProfile(){
+async function renderProfile(){
   const pend = objetivos.filter(o => !o.done);
   const done = objetivos.filter(o => o.done);
-  const costTotal = objetivos.reduce((a,o) => a+(Number(o.coste)||0), 0);
-  const costPend  = pend.reduce((a,o) => a+(Number(o.coste)||0), 0);
-  const costDone  = done.reduce((a,o) => a+(Number(o.coste)||0), 0);
+  const costTotal = objetivos.reduce((a,o) => a+(Number(o.coste)||0),0);
+  const costPend  = pend.reduce((a,o) => a+(Number(o.coste)||0),0);
+  const costDone  = done.reduce((a,o) => a+(Number(o.coste)||0),0);
 
   $("#kpiPend").textContent = pend.length;
   $("#kpiDone").textContent = done.length;
   $("#kpiCostTotal").textContent = eur(costTotal);
   $("#kpiCostPend").textContent  = eur(costPend);
 
-  const profile = getMyProfile();
+  const profile = await getMyProfile();
   $("#followersCount").textContent = (profile?.followers||[]).length;
   $("#followingCount").textContent = (profile?.following||[]).length;
 
   $("#listPend").innerHTML = pend.length
-    ? pend.map(o => '<div class="rowItem"><div class="rowLeft"><strong>' + escapeHTML(o.titulo) + '</strong><small>' + escapeHTML(o.cat) + (o.place?" · "+escapeHTML(o.place):"") + '</small></div><div class="cost">' + eur(o.coste||0) + '</div></div>').join("")
+    ? pend.map(o => '<div class="rowItem"><div class="rowLeft"><strong>'+escapeHTML(o.titulo)+'</strong><small>'+escapeHTML(o.cat)+(o.place?" · "+escapeHTML(o.place):"")+'</small></div><div class="cost">'+eur(o.coste||0)+'</div></div>').join("")
     : '<div class="rowItem"><div class="rowLeft"><strong>Todo hecho 😮‍💨</strong><small>No hay pendientes.</small></div><div class="cost">0€</div></div>';
 
   $("#listDone").innerHTML = done.length
-    ? done.map(o => '<div class="rowItem"><div class="rowLeft"><strong>' + escapeHTML(o.titulo) + '</strong><small>' + escapeHTML(o.cat) + (o.place?" · "+escapeHTML(o.place):"") + '</small></div><div class="cost">' + eur(o.coste||0) + '</div></div>').join("")
-    : '<div class="rowItem"><div class="rowLeft"><strong>Aún ninguno cumplido</strong><small>Se empieza por uno.</small></div><div class="cost">' + eur(costDone) + '</div></div>';
+    ? done.map(o => '<div class="rowItem"><div class="rowLeft"><strong>'+escapeHTML(o.titulo)+'</strong><small>'+escapeHTML(o.cat)+(o.place?" · "+escapeHTML(o.place):"")+'</small></div><div class="cost">'+eur(o.coste||0)+'</div></div>').join("")
+    : '<div class="rowItem"><div class="rowLeft"><strong>Aún ninguno cumplido</strong><small>Se empieza por uno.</small></div><div class="cost">'+eur(costDone)+'</div></div>';
 }
+
+// Click on userCard → open profile edit
+$("#userCard").addEventListener("click", openProfileEdit);
+
+/* ================================================================
+   FOLLOWERS / FOLLOWING MODAL (with clickable profiles)
+================================================================ */
+$("#followersCard").addEventListener("click", () => openSocialList("followers"));
+$("#followingCard").addEventListener("click", () => openSocialList("following"));
+
+async function openSocialList(type){
+  const profile = await getMyProfile();
+  const uids = type==="followers" ? (profile?.followers||[]) : (profile?.following||[]);
+  $("#socialListTitle").textContent = type==="followers" ? "Seguidores" : "Siguiendo";
+  $("#socialListContent").innerHTML = '<div class="miniSpinner"></div>';
+  $("#socialListBack").classList.add("show");
+
+  if(!uids.length){
+    $("#socialListContent").innerHTML = '<div style="padding:20px;text-align:center;color:rgba(11,16,34,.45);font-size:13px;font-weight:700;">No hay nadie aquí todavía.</div>';
+    return;
+  }
+
+  // Load profiles from Firestore
+  const profiles = await window._fsGetUsersByUids(uids);
+  const myFollowing = profile?.following || [];
+
+  $("#socialListContent").innerHTML = profiles.length
+    ? profiles.map(p => {
+        const uid = p.uid;
+        const avatarHtml = p.avatarData
+          ? '<img src="'+p.avatarData+'" alt="av">'
+          : (p.username||"?")[0].toUpperCase();
+        const isF = myFollowing.includes(uid);
+        return '<div class="userResult">'
+          +'<div class="userResultAvatar" style="cursor:pointer;" data-profile-uid="'+uid+'">'+avatarHtml+'</div>'
+          +'<div class="userResultInfo" data-profile-uid="'+uid+'">'
+          +'<div class="userResultName">'+escapeHTML(p.username||"Usuario")+'</div>'
+          +'<div class="userResultHandle">@'+escapeHTML(p.username||p.code||"")+'</div>'
+          +'</div>'
+          +(uid!==currentUid
+            ? '<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
+            : '<span style="font-size:12px;color:rgba(11,16,34,.4);">Tú</span>')
+          +'</div>';
+      }).join("")
+    : '<div style="padding:20px;text-align:center;color:rgba(11,16,34,.45);font-size:13px;font-weight:700;">No hay nadie aquí todavía.</div>';
+}
+
+function closeSocialList(){ $("#socialListBack").classList.remove("show"); }
+$("#socialListClose").addEventListener("click", closeSocialList);
+$("#socialListClose2").addEventListener("click", closeSocialList);
+$("#socialListBack").addEventListener("click", e => { if(e.target===$("#socialListBack")) closeSocialList(); });
+
+$("#socialListContent").addEventListener("click", async e => {
+  // Click on profile info or avatar → open profile
+  const profileEl = e.target.closest("[data-profile-uid]");
+  if(profileEl && !e.target.closest("[data-follow-uid]")){
+    const uid = profileEl.dataset.profileUid;
+    if(uid && uid!==currentUid){
+      closeSocialList();
+      openUserProfile(uid);
+      return;
+    }
+  }
+
+  // Follow / Unfollow button
+  const btn = e.target.closest("[data-follow-uid]");
+  if(!btn) return;
+  const uid = btn.dataset.followUid;
+  const following = await isFollowing(uid);
+  btn.disabled = true;
+  if(following){
+    await unfollowUser(uid);
+    btn.textContent="Seguir"; btn.classList.remove("following");
+  } else {
+    await followUser(uid);
+    btn.textContent="Siguiendo"; btn.classList.add("following");
+  }
+  btn.disabled = false;
+  await updateUserUI();
+  if(currentView==="profile") renderProfile();
+});
+
+/* ================================================================
+   BUSCAR USUARIOS MODAL
+================================================================ */
+function openSearchUsers(){ $("#searchUserInput").value=""; $("#searchUserResults").innerHTML=""; $("#searchUsersBack").classList.add("show"); }
+function closeSearchUsers(){ $("#searchUsersBack").classList.remove("show"); }
+$("#searchUsersClose").addEventListener("click", closeSearchUsers);
+$("#searchUsersClose2").addEventListener("click", closeSearchUsers);
+$("#searchUsersBack").addEventListener("click", e => { if(e.target===$("#searchUsersBack")) closeSearchUsers(); });
+$("#searchBtn").addEventListener("click", openSearchUsers);
+
+let searchDebounce = null;
+$("#searchUserInput").addEventListener("input", () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(async () => {
+    const q = $("#searchUserInput").value.trim();
+    if(!q){ $("#searchUserResults").innerHTML=""; return; }
+    $("#searchUserResults").innerHTML = '<div class="miniSpinner"></div>';
+    try{
+      const found = await window._fsSearchByCode(q);
+      if(!found){
+        $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">No se encontró ningún usuario con ese código.</div>';
+        return;
+      }
+      if(found.uid===currentUid){
+        $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">Ese eres tú 😄</div>';
+        return;
+      }
+      profileCache[found.uid] = found;
+      const isF = await isFollowing(found.uid);
+      const avatarHtml = found.avatarData
+        ? '<img src="'+found.avatarData+'" alt="av">'
+        : (found.username||"?")[0].toUpperCase();
+      $("#searchUserResults").innerHTML = '<div class="userResult">'
+        +'<div class="userResultAvatar" style="cursor:pointer;" data-profile-uid="'+found.uid+'">'+avatarHtml+'</div>'
+        +'<div class="userResultInfo" data-profile-uid="'+found.uid+'">'
+        +'<div class="userResultName">'+escapeHTML(found.username||"Usuario")+'</div>'
+        +'<div class="userResultHandle">@'+escapeHTML(found.username||found.code)+'</div>'
+        +'</div>'
+        +'<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+found.uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
+        +'</div>';
+    }catch(e){
+      $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:#b91c1c;font-weight:700;">Error al buscar. Inténtalo de nuevo.</div>';
+    }
+  }, 350);
+});
+
+$("#searchUserResults").addEventListener("click", async e => {
+  // Click on avatar or name → open profile
+  const profileEl = e.target.closest("[data-profile-uid]");
+  if(profileEl && !e.target.closest("[data-follow-uid]")){
+    const uid = profileEl.dataset.profileUid;
+    if(uid && uid!==currentUid){
+      closeSearchUsers();
+      openUserProfile(uid);
+      return;
+    }
+  }
+
+  const btn = e.target.closest("[data-follow-uid]");
+  if(!btn) return;
+  const uid = btn.dataset.followUid;
+  const following = await isFollowing(uid);
+  btn.disabled = true;
+  if(following){
+    await unfollowUser(uid);
+    btn.textContent="Seguir"; btn.classList.remove("following");
+  } else {
+    await followUser(uid);
+    btn.textContent="Siguiendo"; btn.classList.add("following");
+  }
+  btn.disabled = false;
+  await updateUserUI();
+});
+
+/* ================================================================
+   PERFIL DE OTRO USUARIO MODAL
+================================================================ */
+let viewingProfileUid = null;
+
+async function openUserProfile(uid){
+  if(!uid) return;
+  viewingProfileUid = uid;
+
+  // Reset UI
+  $("#upAvatar").innerHTML = "?";
+  $("#upName").textContent = "—";
+  $("#upHandle").textContent = "—";
+  $("#upFollowers").textContent = "—";
+  $("#upFollowing").textContent = "—";
+  $("#upObjCount").textContent = "—";
+  $("#upObjsList").innerHTML = '<div class="miniSpinner"></div>';
+  $("#upFollowBtn").textContent = "…";
+  $("#upFollowBtn").disabled = true;
+  $("#userProfileBack").classList.add("show");
+
+  try{
+    // Load profile + objectives in parallel
+    const [profile, objs] = await Promise.all([
+      getProfileByUid(uid),
+      window._fsGetPublicObjectives(uid)
+    ]);
+
+    if(!profile){
+      $("#upName").textContent = "Usuario no encontrado";
+      $("#upObjsList").innerHTML = "";
+      return;
+    }
+
+    // Avatar
+    const av = $("#upAvatar");
+    if(profile.avatarData){
+      av.innerHTML = '<img src="'+profile.avatarData+'" alt="av">';
+    } else {
+      av.textContent = (profile.username||"?")[0].toUpperCase();
+    }
+
+    $("#upName").textContent = profile.username || "Usuario";
+    $("#upHandle").textContent = "@" + (profile.username || profile.code || "");
+    $("#upFollowers").textContent = (profile.followers||[]).length;
+    $("#upFollowing").textContent = (profile.following||[]).length;
+    $("#upObjCount").textContent = objs.length;
+
+    // Follow button
+    const amFollowing = await isFollowing(uid);
+    const followBtn = $("#upFollowBtn");
+    followBtn.textContent = amFollowing ? "Siguiendo" : "Seguir";
+    followBtn.className = "btnFollowFull" + (amFollowing ? " following" : "");
+    followBtn.disabled = false;
+
+    // Objectives
+    if(!objs.length){
+      $("#upObjsList").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;text-align:center;">Este usuario no tiene objetivos públicos.</div>';
+    } else {
+      $("#upObjsList").innerHTML = objs.map(o =>
+        '<div class="userObjMini">'
+        +'<div class="userObjMiniImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+        +'<div class="userObjMiniBody">'
+        +'<div class="userObjMiniTitle">'+escapeHTML(o.titulo)+'</div>'
+        +'<div class="userObjMiniMeta">'+escapeHTML(o.cat||"")+(o.done?" · ✅ Cumplido":"")+(o.coste?" · "+eur(o.coste):"")+'</div>'
+        +'</div></div>'
+      ).join("");
+    }
+
+  }catch(err){
+    console.warn("openUserProfile error:", err);
+    $("#upObjsList").innerHTML = '<div style="padding:12px;font-size:13px;color:#b91c1c;font-weight:700;">Error al cargar el perfil.</div>';
+    $("#upFollowBtn").disabled = false;
+    $("#upFollowBtn").textContent = "Seguir";
+  }
+}
+
+function closeUserProfile(){
+  $("#userProfileBack").classList.remove("show");
+  viewingProfileUid = null;
+}
+
+$("#userProfileClose").addEventListener("click", closeUserProfile);
+$("#userProfileBack").addEventListener("click", e => { if(e.target===$("#userProfileBack")) closeUserProfile(); });
+
+$("#upFollowBtn").addEventListener("click", async () => {
+  const uid = viewingProfileUid;
+  if(!uid) return;
+  const btn = $("#upFollowBtn");
+  btn.disabled = true;
+  const following = await isFollowing(uid);
+  if(following){
+    await unfollowUser(uid);
+    btn.textContent = "Seguir";
+    btn.className = "btnFollowFull";
+    // Update follower count in modal
+    const profile = profileCache[uid];
+    if(profile) $("#upFollowers").textContent = (profile.followers||[]).length;
+  } else {
+    await followUser(uid);
+    btn.textContent = "Siguiendo";
+    btn.className = "btnFollowFull following";
+    const profile = profileCache[uid];
+    if(profile) $("#upFollowers").textContent = (profile.followers||[]).length;
+  }
+  btn.disabled = false;
+  await updateUserUI();
+  if(currentView==="profile") renderProfile();
+});
 
 /* ================================================================
    PROFILE EDIT MODAL
 ================================================================ */
-function openProfileEdit(){
+async function openProfileEdit(){
   const user = window._fbAuth?.currentUser;
-  const profile = getMyProfile();
+  const profile = await getMyProfile();
 
-  // Fill avatar
   const peAv = $("#peAvatar");
   const avatarSrc = profile?.avatarData || user?.photoURL || "";
   if(avatarSrc){
-    peAv.innerHTML = '<img src="' + avatarSrc + '" alt="av"><div class="avatarOverlay">📷</div>';
+    peAv.innerHTML = '<img src="'+avatarSrc+'" alt="av"><div class="avatarOverlay">📷</div>';
   } else {
     const ini = (profile?.username || user?.displayName || user?.email || "?")[0].toUpperCase();
-    peAv.innerHTML = '<span>' + ini + '</span><div class="avatarOverlay">📷</div>';
+    peAv.innerHTML = '<span>'+ini+'</span><div class="avatarOverlay">📷</div>';
   }
 
   $("#peCodeDisplay").textContent = profile?.username ? "@"+profile.username : "";
@@ -1911,7 +1987,6 @@ $("#profileEditClose").addEventListener("click", closeProfileEdit);
 $("#profileEditCancel").addEventListener("click", closeProfileEdit);
 $("#profileEditBack").addEventListener("click", e => { if(e.target===$("#profileEditBack")) closeProfileEdit(); });
 
-// Avatar click → file picker
 $("#peAvatar").addEventListener("click", () => $("#peAvatarFile").click());
 $("#peAvatarFile").addEventListener("change", async () => {
   const f = $("#peAvatarFile").files?.[0];
@@ -1924,141 +1999,33 @@ $("#peAvatarFile").addEventListener("change", async () => {
       r.readAsDataURL(f);
     });
     const peAv = $("#peAvatar");
-    peAv.innerHTML = '<img src="' + data + '" alt="av"><div class="avatarOverlay">📷</div>';
+    peAv.innerHTML = '<img src="'+data+'" alt="av"><div class="avatarOverlay">📷</div>';
     peAv.dataset.pendingAvatar = data;
   }catch(e){ alert("No se pudo cargar la imagen."); }
-  finally{ $("#peAvatarFile").value = ""; }
+  finally{ $("#peAvatarFile").value=""; }
 });
 
-// Copy code
 $("#copyCodeBtn").addEventListener("click", () => {
   const code = $("#peCodeValue").textContent;
   navigator.clipboard?.writeText(code).then(() => {
-    $("#copyCodeBtn").textContent = "✅ Copiado!";
-    setTimeout(() => { $("#copyCodeBtn").textContent = "📋 Copiar código"; }, 2000);
+    $("#copyCodeBtn").textContent="✅ Copiado!";
+    setTimeout(() => { $("#copyCodeBtn").textContent="📋 Copiar código"; }, 2000);
   });
 });
 
-// Save profile
 $("#profileEditSave").addEventListener("click", async () => {
   const username = $("#peUsername").value.trim().replace(/\s/g,"").replace(/^@/,"");
   const pendingAvatar = $("#peAvatar").dataset.pendingAvatar || "";
-  const profile = getMyProfile();
   const updates = { username };
   if(pendingAvatar) updates.avatarData = pendingAvatar;
-  saveMyProfile(updates);
-  // Also update Firebase display name
+  await saveMyProfile(updates);
   if(username && window._fbAuth?.currentUser){
     try{ await window._fbUpdateProfile({ displayName: username }); }catch(e){}
   }
   delete $("#peAvatar").dataset.pendingAvatar;
   closeProfileEdit();
-  if(window._fbAuth?.currentUser) updateUserUI(window._fbAuth.currentUser);
-  renderProfile();
-});
-
-// Followers/Following cards click
-$("#followersCard").addEventListener("click", () => openSocialList("followers"));
-$("#followingCard").addEventListener("click", () => openSocialList("following"));
-
-function openSocialList(type){
-  const profile = getMyProfile();
-  const uids = type === "followers" ? (profile?.followers||[]) : (profile?.following||[]);
-  const profiles = loadAllProfiles();
-  $("#socialListTitle").textContent = type === "followers" ? "Seguidores" : "Siguiendo";
-  $("#socialListContent").innerHTML = uids.length
-    ? uids.map(uid => {
-        const p = profiles[uid];
-        if(!p) return "";
-        const avatarHtml = p.avatarData
-          ? '<img src="'+p.avatarData+'" alt="av">'
-          : (p.username||"?")[0].toUpperCase();
-        const isF = isFollowing(uid);
-        return '<div class="userResult">'
-          + '<div class="userResultAvatar">' + avatarHtml + '</div>'
-          + '<div class="userResultInfo">'
-          + '<div class="userResultName">' + escapeHTML(p.username||"Usuario") + '</div>'
-          + '<div class="userResultHandle">Código: ' + escapeHTML(p.code||"") + '</div>'
-          + '</div>'
-          + (uid !== currentUid ? '<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>' : '<span style="font-size:12px;color:rgba(11,16,34,.4);">Tú</span>')
-          + '</div>';
-      }).join("")
-    : '<div style="padding:20px;text-align:center;color:rgba(11,16,34,.45);font-size:13px;font-weight:700;">No hay nadie aquí todavía.</div>';
-  $("#socialListBack").classList.add("show");
-}
-function closeSocialList(){ $("#socialListBack").classList.remove("show"); }
-$("#socialListClose").addEventListener("click", closeSocialList);
-$("#socialListClose2").addEventListener("click", closeSocialList);
-$("#socialListBack").addEventListener("click", e => { if(e.target===$("#socialListBack")) closeSocialList(); });
-$("#socialListContent").addEventListener("click", e => {
-  const btn = e.target.closest("[data-follow-uid]");
-  if(!btn) return;
-  const uid = btn.dataset.followUid;
-  if(isFollowing(uid)){
-    unfollowUser(uid);
-    btn.textContent = "Seguir";
-    btn.classList.remove("following");
-  } else {
-    followUser(uid);
-    btn.textContent = "Siguiendo";
-    btn.classList.add("following");
-  }
-  renderProfile();
-});
-
-/* ================================================================
-   BUSCAR USUARIOS MODAL
-================================================================ */
-function openSearchUsers(){ $("#searchUsersBack").classList.add("show"); }
-function closeSearchUsers(){ $("#searchUsersBack").classList.remove("show"); }
-$("#searchUsersClose").addEventListener("click", closeSearchUsers);
-$("#searchUsersClose2").addEventListener("click", closeSearchUsers);
-$("#searchUsersBack").addEventListener("click", e => { if(e.target===$("#searchUsersBack")) closeSearchUsers(); });
-
-let searchDebounce = null;
-$("#searchUserInput").addEventListener("input", () => {
-  clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(() => {
-    const q = $("#searchUserInput").value.trim();
-    if(!q){ $("#searchUserResults").innerHTML = ""; return; }
-    const found = findUserByCode(q);
-    if(!found){
-      $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">No se encontró ningún usuario con ese código.</div>';
-      return;
-    }
-    if(found.uid === currentUid){
-      $("#searchUserResults").innerHTML = '<div style="padding:12px;font-size:13px;color:rgba(11,16,34,.45);font-weight:700;">Ese eres tú 😄</div>';
-      return;
-    }
-    const isF = isFollowing(found.uid);
-    const avatarHtml = found.avatarData
-      ? '<img src="'+found.avatarData+'" alt="av">'
-      : (found.username||"?")[0].toUpperCase();
-    $("#searchUserResults").innerHTML = '<div class="userResult">'
-      + '<div class="userResultAvatar">' + avatarHtml + '</div>'
-      + '<div class="userResultInfo">'
-      + '<div class="userResultName">' + escapeHTML(found.username||"Usuario") + '</div>'
-      + '<div class="userResultHandle">@' + escapeHTML(found.username||found.code) + '</div>'
-      + '</div>'
-      + '<button class="btnFollow '+(isF?"following":"") +'" data-follow-uid="'+found.uid+'">'+(isF?"Siguiendo":"Seguir")+'</button>'
-      + '</div>';
-  }, 350);
-});
-
-$("#searchUserResults").addEventListener("click", e => {
-  const btn = e.target.closest("[data-follow-uid]");
-  if(!btn) return;
-  const uid = btn.dataset.followUid;
-  if(isFollowing(uid)){
-    unfollowUser(uid);
-    btn.textContent = "Seguir";
-    btn.classList.remove("following");
-  } else {
-    followUser(uid);
-    btn.textContent = "Siguiendo";
-    btn.classList.add("following");
-  }
-  renderProfile();
+  await updateUserUI();
+  if(currentView==="profile") renderProfile();
 });
 
 /* ================================================================
@@ -2080,7 +2047,7 @@ function openLightbox(imgs, idx){
 function closeLightbox(){ lightbox.classList.remove("show"); }
 function renderLB(){
   lbImg.src = galleryImgs[galleryIdx];
-  lbCounter.textContent = (galleryIdx+1) + "/" + galleryImgs.length;
+  lbCounter.textContent = (galleryIdx+1)+"/"+galleryImgs.length;
   $("#lbPrev").style.visibility = galleryImgs.length>1?"visible":"hidden";
   $("#lbNext").style.visibility = galleryImgs.length>1?"visible":"hidden";
 }
@@ -2098,7 +2065,7 @@ window.addEventListener("keydown", e => {
   if(e.key==="ArrowRight") nextImg();
 });
 let lbStartX = null;
-lbStage.addEventListener("touchstart", e => { lbStartX = e.touches[0].clientX; },{passive:true});
+lbStage.addEventListener("touchstart", e => { lbStartX=e.touches[0].clientX; },{passive:true});
 lbStage.addEventListener("touchend", e => {
   if(lbStartX===null) return;
   const dx = e.changedTouches[0].clientX - lbStartX; lbStartX=null;
@@ -2115,10 +2082,10 @@ function openDetail(id){
   selectedId = id;
   const o = objetivos.find(x => x.id===id);
   if(!o) return;
-  $("#detailHero").style.backgroundImage = "url('" + firstImg(o) + "')";
+  $("#detailHero").style.backgroundImage = "url('"+firstImg(o)+"')";
   $("#detailTitle").textContent = o.titulo;
-  const place = o.place ? " · " + o.place : "";
-  $("#detailSub").textContent = o.cat + " · " + (o.done?"Cumplido":"Pendiente") + place;
+  const place = o.place ? " · "+o.place : "";
+  $("#detailSub").textContent = o.cat+" · "+(o.done?"Cumplido":"Pendiente")+place;
   $("#chipCat").textContent   = o.cat;
   $("#chipState").textContent = o.done?"Cumplido":"Pendiente";
   $("#chipCost").textContent  = eur(o.coste);
@@ -2142,14 +2109,12 @@ function toggleDone(){
   const o = objetivos.find(x => x.id===selectedId);
   if(!o) return;
   o.done = !o.done;
-  saveObjetivos();
   const place = o.place ? " · "+o.place : "";
   $("#chipState").textContent = o.done?"Cumplido":"Pendiente";
   $("#detailSub").textContent = o.cat+" · "+(o.done?"Cumplido":"Pendiente")+place;
   $("#toggleDoneTop").textContent = o.done?"♥":"♡";
-  renderHome(currentCat);
-  if(viewProfile.style.display!=="none") renderProfile();
-  if(map) renderMapMarkers();
+  $("#toggleDoneBtn").textContent = o.done?"✓":"›";
+  refreshEverywhere();
 }
 
 $("#backBtn").addEventListener("click", closeDetail);
@@ -2160,175 +2125,124 @@ $("#detailHero").addEventListener("click", () => {
   if(o) openLightbox(o.imgs||[], 0);
 });
 $("#detailThumbs").addEventListener("click", e => {
-  const t = e.target.closest(".thumb");
-  if(!t) return;
+  const thumb = e.target.closest(".thumb");
+  if(!thumb) return;
   const o = objetivos.find(x => x.id===selectedId);
-  if(o) openLightbox(o.imgs||[], Number(t.dataset.idx));
+  if(o) openLightbox(o.imgs||[], Number(thumb.dataset.idx)||0);
+  // Update hero
+  const imgs = o?.imgs||[];
+  const idx = Number(thumb.dataset.idx)||0;
+  if(imgs[idx]) $("#detailHero").style.backgroundImage = "url('"+imgs[idx]+"')";
+  $$(".thumb").forEach((t,i) => t.classList.toggle("dim", i!==idx));
 });
 
 /* ================================================================
-   MAPA
+   GEAR / SETTINGS MODAL
 ================================================================ */
-let map = null, markersLayer = null;
+let editingId = null;
+let pendingLocalImgs = [];
 
-function initMapIfNeeded(){
-  if(map) return;
-  map = L.map("map",{zoomControl:true}).setView([20,0],2);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(map);
-  markersLayer = L.layerGroup().addTo(map);
-}
-
-function renderMapMarkers(){
-  if(!map||!markersLayer) return;
-  markersLayer.clearLayers();
-  const points = [];
-  objetivos.forEach(o => {
-    const lat = typeof o.lat==="number"?o.lat:(o.lat===""?null:Number(o.lat));
-    const lng = typeof o.lng==="number"?o.lng:(o.lng===""?null:Number(o.lng));
-    if(!Number.isFinite(lat)||!Number.isFinite(lng)) return;
-    points.push([lat,lng]);
-    const marker = L.marker([lat,lng]).addTo(markersLayer);
-    marker.bindPopup(
-      '<div style="display:flex;gap:10px;align-items:center;min-width:220px">'
-      +'<div style="width:46px;height:46px;border-radius:12px;background:#ddd center/cover no-repeat;flex:0 0 auto;background-image:url(\''+firstImg(o)+'\')"></div>'
-      +'<div><div style="font-weight:900">'+escapeHTML(o.titulo)+'</div>'
-      +'<div style="opacity:.75;font-size:12px;margin-top:4px">'+escapeHTML(o.cat)+' · '+(o.done?"Cumplido":"Pendiente")+'</div>'
-      +(o.place?'<div style="opacity:.75;font-size:12px;margin-top:2px">'+escapeHTML(o.place)+'</div>':'')
-      +'</div></div>'
-      +'<div style="margin-top:10px;display:flex;justify-content:flex-end">'
-      +'<button data-open-id="'+o.id+'" style="border:none;padding:10px 12px;border-radius:12px;background:#0b1022;color:#fff;font-weight:900;cursor:pointer">Ver detalle →</button>'
-      +'</div>'
-    );
-  });
-  if(points.length) map.fitBounds(L.latLngBounds(points),{padding:[30,30]});
-  else map.setView([20,0],2);
-}
-
-document.addEventListener("click", e => {
-  const btn = e.target.closest("[data-open-id]");
-  if(!btn) return;
-  const id = Number(btn.dataset.openId);
-  if(!Number.isFinite(id)) return;
-  if(map) map.closePopup();
-  openDetail(id);
-});
-
-/* ================================================================
-   AJUSTES (CRUD)
-================================================================ */
-let editingId = null, pendingLocalImgs = [];
-
-function updateLocalCount(){ $("#localCount").textContent = pendingLocalImgs.length + " seleccionadas"; }
-
-function openSettings(){  editingId = null; pendingLocalImgs = []; updateLocalCount();
-  showSettingsList();
-  $("#settingsBack").classList.add("show");
-}
-function closeSettings(){ $("#settingsBack").classList.remove("show"); }
-
-// gearBtn is already handled context-aware above (home→settings, profile→profileEdit)
+function openSettings(){ showSettingsList(); $("#settingsBack").classList.add("show"); }
+function closeSettings(){ $("#settingsBack").classList.remove("show"); editingId=null; pendingLocalImgs=[]; updateLocalCount(); }
+$("#gearBtn").addEventListener("click", openSettings);
 $("#settingsClose").addEventListener("click", closeSettings);
-$("#btnCloseList").addEventListener("click", closeSettings);
 $("#settingsBack").addEventListener("click", e => { if(e.target===$("#settingsBack")) closeSettings(); });
+$("#btnCloseList").addEventListener("click", closeSettings);
 
 function showSettingsList(){
-  $("#settingsListView").style.display = "block";
-  $("#settingsFormView").style.display = "none";
-  $("#settingsActionsList").style.display = "flex";
-  $("#settingsActionsForm").style.display = "none";
-  $("#settingsList").innerHTML = objetivos
-    .slice().sort((a,b) => a.done===b.done ? a.id-b.id : (a.done?1:-1))
-    .map(o =>
-      '<div class="miniItem '+(o.done?"done":"") +'" data-id="'+o.id+'">'
-      +'<div class="miniImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
-      +'<div class="miniText"><b>'+escapeHTML(o.titulo)+'</b>'
-      +'<span>'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+' </span></div>'
-      +'<div class="tag '+(o.done?"done":"") +'">'+(o.done?"Cumplido":"Pendiente")+'</div></div>'
-    ).join("") || '<div class="smallNote">No hay objetivos. Añada el primero.</div>';
+  $("#settingsListView").style.display="";
+  $("#settingsFormView").style.display="none";
+  $("#settingsActionsList").style.display="";
+  $("#settingsActionsForm").style.display="none";
+  renderSettingsList();
+}
+function showSettingsForm(){
+  $("#settingsListView").style.display="none";
+  $("#settingsFormView").style.display="";
+  $("#settingsActionsList").style.display="none";
+  $("#settingsActionsForm").style.display="";
+}
+function renderSettingsList(){
+  const list = objetivos;
+  $("#settingsList").innerHTML = list.map(o =>
+    '<div class="miniItem '+(o.done?"done":"") + '" data-settings-id="'+o.id+'">'
+    +'<div class="miniImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+    +'<div class="miniText"><b>'+escapeHTML(o.titulo)+'</b><span>'+escapeHTML(o.cat)+(o.done?" · ✅":"")+'</span></div>'
+    +'<div class="tag">Editar</div>'
+    +'</div>'
+  ).join("") || '<div class="smallNote">No hay objetivos todavía.</div>';
 }
 
-function showSettingsForm(mode){
-  $("#settingsListView").style.display = "none";
-  $("#settingsFormView").style.display = "block";
-  $("#settingsActionsList").style.display = "none";
-  $("#settingsActionsForm").style.display = "flex";
-  $("#formModeNote").textContent = mode==="new" ? "Nuevo objetivo" : "Editar objetivo";
+$("#settingsList").addEventListener("click", e => {
+  const item = e.target.closest("[data-settings-id]");
+  if(!item) return;
+  openEdit(Number(item.dataset.settingsId));
+});
+
+function openEdit(id){
+  editingId = id;
+  const o = objetivos.find(x => x.id===id);
+  if(!o) return;
+  $("#formModeNote").textContent="Editar objetivo";
+  $("#fTitle").value = o.titulo||"";
+  $("#fCat").value   = o.cat||"Viajes";
+  $("#fCost").value  = o.coste||0;
+  $("#fDone").checked = !!o.done;
+  $("#fPublic").checked = o.isPublic !== false;
+  $("#fDesc").value  = o.desc||"";
+  const imgs = o.imgs||[];
+  $("#fImg0").value = imgs[0]||"";
+  $("#fImg1").value = imgs[1]||"";
+  $("#fImg2").value = imgs[2]||"";
+  $("#fImg3").value = imgs[3]||"";
+  $("#fPlace").value = o.place||"";
+  $("#fLat").value   = o.lat!=null?o.lat:"";
+  $("#fLng").value   = o.lng!=null?o.lng:"";
+  pendingLocalImgs=[]; updateLocalCount();
+  showSettingsForm();
 }
 
-function fillForm(o){
-  $("#fTitle").value = o?.titulo ?? "";
-  $("#fCat").value   = o?.cat ?? "Viajes";
-  $("#fCost").value  = o?.coste ?? 0;
-  $("#fDone").checked = !!o?.done;
-  $("#fPublic").checked = o ? (o.isPublic !== false) : true;
-  $("#fDesc").value  = o?.desc ?? "";
-  const imgs = (o?.imgs && o.imgs.length) ? o.imgs : ["","","",""];
-  $("#fImg0").value = imgs[0]?.startsWith("data:") ? "" : (imgs[0]||"");
-  $("#fImg1").value = imgs[1]?.startsWith("data:") ? "" : (imgs[1]||"");
-  $("#fImg2").value = imgs[2]?.startsWith("data:") ? "" : (imgs[2]||"");
-  $("#fImg3").value = imgs[3]?.startsWith("data:") ? "" : (imgs[3]||"");
-  $("#fPlace").value = o?.place ?? "";
-  $("#fLat").value   = o?.lat != null ? o.lat : "";
-  $("#fLng").value   = o?.lng != null ? o.lng : "";
-  pendingLocalImgs = []; updateLocalCount();
-  $("#localFiles").value = "";
+$("#btnAdd").addEventListener("click", () => {
+  editingId=null;
+  openAddForm();
+});
+function openAddForm(){
+  $("#formModeNote").textContent="Nuevo objetivo";
+  ["fTitle","fCost","fDesc","fImg0","fImg1","fImg2","fImg3","fPlace","fLat","fLng"].forEach(id=>{
+    const el=$("#"+id); if(el) el.value="";
+  });
+  $("#fCat").value="Viajes";
+  $("#fDone").checked=false;
+  $("#fPublic").checked=true;
+  pendingLocalImgs=[]; updateLocalCount();
+  showSettingsForm();
 }
+$("#btnBackToList").addEventListener("click", () => { editingId=null; pendingLocalImgs=[]; updateLocalCount(); showSettingsList(); });
 
-async function filesToDataUrls(files){
-  const result = [];
-  for(const file of Array.from(files||[])){
-    if(!file.type.startsWith("image/")) continue;
-    const url = await new Promise((res,rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-    result.push(url);
-  }
-  return result;
+function updateLocalCount(){ $("#localCount").textContent = pendingLocalImgs.length+" seleccionadas"; }
+function filesToDataUrls(files){
+  return Promise.all(Array.from(files).map(f => new Promise((res,rej) => {
+    const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f);
+  })));
 }
-
 $("#pickLocalBtn").addEventListener("click", () => $("#localFiles").click());
 $("#localFiles").addEventListener("change", async () => {
   if(!$("#localFiles").files?.length) return;
-  try{ const d = await filesToDataUrls($("#localFiles").files); pendingLocalImgs.push(...d); updateLocalCount(); }
+  try{ const d=await filesToDataUrls($("#localFiles").files); pendingLocalImgs.push(...d); updateLocalCount(); }
   catch(e){ alert("No se pudieron cargar fotos."); }
-  finally{ $("#localFiles").value = ""; }
+  finally{ $("#localFiles").value=""; }
 });
-
-$("#btnAdd").addEventListener("click", () => { editingId=null; fillForm(null); showSettingsForm("new"); $("#btnDelete").style.display="none"; });
-
-$("#settingsList").addEventListener("click", e => {
-  const item = e.target.closest(".miniItem");
-  if(!item) return;
-  const o = objetivos.find(x => x.id===Number(item.dataset.id));
-  if(!o) return;
-  editingId = o.id; fillForm(o); showSettingsForm("edit"); $("#btnDelete").style.display="block";
-});
-
-$("#btnBackToList").addEventListener("click", () => { editingId=null; pendingLocalImgs=[]; updateLocalCount(); showSettingsList(); });
-
-function refreshEverywhere(){
-  saveObjetivos();
-  renderHome(currentCat);
-  if(viewProfile.style.display!=="none") renderProfile();
-  if(map) renderMapMarkers();
-  if(selectedId && screenDetail.classList.contains("active")){
-    if(objetivos.some(o => o.id===selectedId)) openDetail(selectedId);
-  }
-}
 
 $("#btnSave").addEventListener("click", () => {
-  const titulo = $("#fTitle").value.trim();
-  const cat    = $("#fCat").value;
-  const coste  = Number($("#fCost").value||0);
-  const done   = !!$("#fDone").checked;
+  const titulo   = $("#fTitle").value.trim();
+  const cat      = $("#fCat").value;
+  const coste    = Number($("#fCost").value||0);
+  const done     = $("#fDone").checked;
   const isPublic = !!$("#fPublic").checked;
-  const desc   = $("#fDesc").value.trim();
-  const place  = $("#fPlace").value.trim();
-  const latRaw = $("#fLat").value.trim();
-  const lngRaw = $("#fLng").value.trim();
+  const desc     = $("#fDesc").value.trim();
+  const place    = $("#fPlace").value.trim();
+  const latRaw   = $("#fLat").value.trim();
+  const lngRaw   = $("#fLng").value.trim();
   const lat = latRaw===""?null:Number(latRaw);
   const lng = lngRaw===""?null:Number(lngRaw);
 
@@ -2363,6 +2277,8 @@ $("#btnDelete").addEventListener("click", () => {
   if(editingId==null) return;
   const o = objetivos.find(x => x.id===editingId);
   if(!confirm('¿Borrar "' + (o?.titulo||"objetivo") + '"?')) return;
+  // Delete from Firestore
+  if(currentUid && window._fsDeleteObjective) window._fsDeleteObjective(currentUid, editingId).catch(()=>{});
   objetivos = objetivos.filter(x => x.id!==editingId);
   if(selectedId===editingId && screenDetail.classList.contains("active")) closeDetail();
   editingId=null; pendingLocalImgs=[]; updateLocalCount();
@@ -2394,7 +2310,6 @@ function renderIdeas(cat){
   ).join("") || '<div class="smallNote">No hay ideas aquí todavía.</div>';
 }
 
-$("#searchBtn").addEventListener("click", () => openSearchUsers());
 $("#ideasClose").addEventListener("click", closeIdeas);
 $("#ideasClose2").addEventListener("click", closeIdeas);
 $("#ideasBack").addEventListener("click", e => { if(e.target===$("#ideasBack")) closeIdeas(); });
@@ -2403,7 +2318,6 @@ $$(".ideaTab").forEach(btn => btn.addEventListener("click", () => {
   btn.classList.add("active");
   renderIdeas(btn.dataset.ideaCat);
 }));
-
 document.addEventListener("click", e => {
   const add = e.target.closest("[data-idea-add]");
   if(!add) return;
@@ -2430,12 +2344,12 @@ function setWizardStep(n){
 
 function resetWizard(){
   ["wTitle","wCost","wDesc","wPlace","wLat","wLng","wImgUrl"].forEach(id => {
-    const el = $("#"+id); if(el) el.value="";
+    const el=$("#"+id); if(el) el.value="";
   });
-  $("#wCat").value = "Viajes";
+  $("#wCat").value="Viajes";
   wLocalImgs=[];
-  $("#wLocalCount").textContent = "0 seleccionadas";
-  $("#wLocalFiles").value = "";
+  $("#wLocalCount").textContent="0 seleccionadas";
+  $("#wLocalFiles").value="";
   setWizardStep(0);
 }
 
@@ -2468,23 +2382,20 @@ $("#wNext").addEventListener("click", () => {
   if(wStep < stepsCount-1){ setWizardStep(wStep+1); return; }
 
   // CREAR
-  const titulo = $("#wTitle").value.trim();
-  const cat    = $("#wCat").value;
-  const coste  = Number($("#wCost").value||0);
-  const desc   = $("#wDesc").value.trim();
-  const place  = $("#wPlace").value.trim();
-  const latRaw = $("#wLat").value.trim();
-  const lngRaw = $("#wLng").value.trim();
+  const titulo  = $("#wTitle").value.trim();
+  const cat     = $("#wCat").value;
+  const coste   = Number($("#wCost").value||0);
+  const desc    = $("#wDesc").value.trim();
+  const place   = $("#wPlace").value.trim();
+  const latRaw  = $("#wLat").value.trim();
+  const lngRaw  = $("#wLng").value.trim();
   const lat = latRaw===""?null:Number(latRaw);
   const lng = lngRaw===""?null:Number(lngRaw);
 
   if((lat!==null&&!Number.isFinite(lat))||(lng!==null&&!Number.isFinite(lng))){ alert("Lat/Lng no válidos."); return; }
 
   let imgs = [];
-  if(wLocalImgs.length){
-    imgs.push(wLocalImgs[0]);
-    if(wLocalImgs.length>1) imgs.push(...wLocalImgs.slice(1));
-  }
+  if(wLocalImgs.length){ imgs.push(wLocalImgs[0]); if(wLocalImgs.length>1) imgs.push(...wLocalImgs.slice(1)); }
   const manual = ($("#wImgUrl").value||"").trim();
   if(manual) imgs.push(manual);
   imgs = [...new Set(imgs)].filter(Boolean);
@@ -2502,7 +2413,6 @@ $("#wNext").addEventListener("click", () => {
 });
 
 $("#addWizardBtn").addEventListener("click", () => openWizard());
-
 </script>
 </body>
 </html>
