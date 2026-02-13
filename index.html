@@ -153,6 +153,13 @@
       try{ await deleteDoc(doc(db,"objectives",uid,"items",String(id))); }catch(e){}
     };
 
+    // Test Firebase Auth is reachable
+    auth.authStateReady().then(() => {
+      console.log("Firebase Auth ready");
+    }).catch(err => {
+      console.error("Firebase Auth not ready:", err);
+    });
+
     window.dispatchEvent(new Event("firebaseReady"));
   </script>
 
@@ -1267,9 +1274,15 @@ waitFirebase(() => {
     if(user){
       currentUid = user.uid;
       objetivos = loadObjetivos();
-      // Ensure user profile exists in Firestore
-      await ensureFirestoreProfile(user);
+      // Show app immediately — do NOT block on Firestore
       showAppScreen(user);
+      // Load/create profile in background
+      ensureFirestoreProfile(user).then(() => {
+        updateUserUI();
+        if(currentView==="profile") renderProfile();
+      }).catch(err => {
+        console.warn("Profile init failed (non-fatal):", err?.code, err?.message);
+      });
     } else {
       currentUid = null;
       showAuthScreen();
@@ -1480,9 +1493,15 @@ function friendlyError(code){
     "auth/popup-closed-by-user":"Ventana de Google cerrada.",
     "auth/cancelled-popup-request":"Ventana de Google cerrada.",
     "auth/network-request-failed":"Error de red. Comprueba tu conexión.",
-    "auth/too-many-requests":"Demasiados intentos. Espera un momento."
+    "auth/too-many-requests":"Demasiados intentos. Espera unos minutos.",
+    "auth/user-disabled":"Esta cuenta ha sido desactivada.",
+    "auth/operation-not-allowed":"Este método de acceso no está habilitado en Firebase.",
+    "auth/missing-password":"Introduce tu contraseña.",
+    "auth/missing-email":"Introduce tu correo electrónico."
   };
-  return map[code] || "Error inesperado. Inténtalo de nuevo.";
+  if(map[code]) return map[code];
+  if(code) return "Error (" + code + "). Si persiste, contacta al soporte.";
+  return "Error desconocido. Inténtalo de nuevo.";
 }
 
 // LOGIN
@@ -1495,7 +1514,10 @@ $("#loginBtn").addEventListener("click", async () => {
   setAuthLoading(true);
   try{
     await window._fbSignInEmail(e,p);
-  }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
+  }catch(err){
+    console.error("Login error:", err.code, err.message);
+    showAuthError(errEl, friendlyError(err.code));
+  }
   finally{ setAuthLoading(false); }
 });
 
