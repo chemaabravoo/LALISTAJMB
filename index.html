@@ -52,7 +52,7 @@
 
     const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db   = getFirestore(app);
+    const db   = getFirestore(app, "lalista-ed7d4");
     const googleProvider = new GoogleAuthProvider();
 
     window._fbAuth        = auth;
