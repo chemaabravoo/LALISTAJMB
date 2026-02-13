@@ -77,10 +77,26 @@
 
     window._fsSetUser = async (uid, data) => {
       const toSave = { ...data };
-      delete toSave.avatarData; // never save avatar to Firestore (1MB limit)
-      // Always use setDoc without merge so create+update both work
-      // with simple allow write rules
-      await setDoc(doc(db,"users",uid), toSave);
+      delete toSave.avatarData;
+      // Try setDoc first (no merge = works for both create and update)
+      try {
+        await setDoc(doc(db,"users",uid), toSave);
+        console.log("Firestore write OK for uid:", uid);
+      } catch(e1) {
+        console.warn("setDoc failed ("+e1.code+"), trying updateDoc...");
+        // If doc exists but create failed, try updateDoc
+        if(e1.code === "permission-denied") {
+          // Re-throw so caller can handle it properly
+          throw e1;
+        }
+        try {
+          await updateDoc(doc(db,"users",uid), toSave);
+          console.log("updateDoc OK for uid:", uid);
+        } catch(e2) {
+          console.error("Both write methods failed:", e2.code);
+          throw e2;
+        }
+      }
     };
 
     // Avatar stored in localStorage only (too large for Firestore)
@@ -1086,6 +1102,7 @@
             </div>
             <div class="modalActions">
               <button class="ghost" id="profileEditCancel">Cancelar</button>
+              <button class="ghost" id="profileEditTest" style="font-size:11px;padding:8px 12px;">🔬 Test Firestore</button>
               <button class="primary" id="profileEditSave">Guardar</button>
             </div>
           </div>
@@ -2255,6 +2272,45 @@ $("#copyCodeBtn").addEventListener("click", () => {
     $("#copyCodeBtn").textContent="✅ Copiado!";
     setTimeout(() => { $("#copyCodeBtn").textContent="📋 Copiar código"; }, 2000);
   });
+});
+
+$("#profileEditTest").addEventListener("click", async () => {
+  const btn = $("#profileEditTest");
+  btn.disabled = true;
+  btn.textContent = "Probando…";
+
+  const authUser = window._fbAuth?.currentUser;
+  let report = "=== TEST FIRESTORE ===\n";
+  report += "¿Logueado? " + (authUser ? "SÍ" : "NO") + "\n";
+  if(authUser){
+    report += "UID: " + authUser.uid + "\n";
+    report += "Email: " + authUser.email + "\n";
+    report += "currentUid interno: " + currentUid + "\n";
+    report += "¿Coinciden? " + (authUser.uid === currentUid ? "SÍ ✅" : "NO ❌") + "\n";
+    
+    // Try a minimal write
+    try{
+      const testData = { _test: true, ts: Date.now() };
+      // Delete avatarData
+      await window._fsSetUser(authUser.uid, testData);
+      report += "\nEscritura Firestore: ✅ FUNCIONA";
+    }catch(e){
+      report += "\nEscritura Firestore: ❌ FALLA";
+      report += "\nCódigo: " + (e.code || e.message);
+    }
+
+    // Try reading
+    try{
+      const prof = await window._fsGetUser(authUser.uid);
+      report += "\nLectura Firestore: ✅ " + (prof ? "Perfil encontrado" : "Sin perfil aún");
+    }catch(e){
+      report += "\nLectura Firestore: ❌ " + (e.code || e.message);
+    }
+  }
+
+  alert(report);
+  btn.disabled = false;
+  btn.textContent = "🔬 Test Firestore";
 });
 
 $("#profileEditSave").addEventListener("click", async () => {
