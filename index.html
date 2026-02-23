@@ -510,7 +510,8 @@
     .detailTitleBlock .subline{margin-top:10px;font-size:13px;color:rgba(255,255,255,.78);font-weight:700;}
     .sheet{
       position:absolute;left:0;right:0;bottom:0;background:#f6f7fb;
-      border-radius:22px 22px 0 0;padding:14px 14px 18px;z-index:6;min-height:46%;
+      border-radius:22px 22px 0 0;padding:14px 14px 18px;z-index:6;
+      min-height:46%;max-height:75%;overflow-y:auto;-webkit-overflow-scrolling:touch;
     }
     .chips{display:flex;gap:10px;flex-wrap:wrap;padding:4px 4px 10px;}
     .chip{
@@ -531,7 +532,7 @@
       padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;
     }
     .btnAddTask:active{transform:translateY(1px);}
-    .tasksList{}
+    .tasksList{max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     .taskItem{
       display:flex;align-items:center;gap:10px;
       padding:10px 12px;background:#fff;border-radius:12px;
