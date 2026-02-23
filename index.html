@@ -1320,16 +1320,17 @@ async function ensureFirestoreProfile(user){
         username: user.displayName || "",
         usernameLower: (user.displayName||"").toLowerCase(),
         code,
-        avatarData: user.photoURL || "",
         following: [],
         followers: []
       };
-      // Save avatar locally if it's a URL (Google photo), not base64
-      if(profile.avatarData) window._fsSetAvatarLocal(user.uid, profile.avatarData);
-      await window._fsSetUser(user.uid, profile); // strips avatarData before Firestore
+      // Save Google photo avatar if present
+      if(user.photoURL) window._fsSetAvatarLocal(user.uid, user.photoURL);
+      await window._fsSetUser(user.uid, profile);
     }
-    profileCache[user.uid] = profile;
-    return profile;
+    // Always load avatar from localStorage (whether new or existing user)
+    const avatarData = window._fsGetAvatarLocal(user.uid) || "";
+    profileCache[user.uid] = { ...profile, avatarData };
+    return profileCache[user.uid];
   }catch(e){
     console.warn("Firestore profile init error:", e);
     return null;
@@ -1341,8 +1342,13 @@ async function getMyProfile(){
   if(profileCache[currentUid]) return profileCache[currentUid];
   try{
     const p = await window._fsGetUser(currentUid);
-    if(p) profileCache[currentUid] = p;
-    return p;
+    if(p){
+      // Firestore profile doesn't include avatar, read from localStorage
+      const avatarData = window._fsGetAvatarLocal(currentUid) || "";
+      profileCache[currentUid] = { ...p, avatarData };
+      return profileCache[currentUid];
+    }
+    return null;
   }catch(e){ return null; }
 }
 
@@ -1371,12 +1377,21 @@ async function saveMyProfile(data){
   if(data.username !== undefined){
     updated.usernameLower = (data.username||"").toLowerCase();
   }
-  // Avatar stays in localStorage only
+  
+  // Determine final avatarData for cache
+  let finalAvatarData = current.avatarData || "";
   if(data.avatarData){
     window._fsSetAvatarLocal(currentUid, data.avatarData);
+    finalAvatarData = data.avatarData;
   }
+  
+  // Remove avatarData before saving to Firestore
   delete updated.avatarData;
-  profileCache[currentUid] = { ...updated, avatarData: data.avatarData || current.avatarData || "" };
+  
+  // Update cache with avatar included
+  profileCache[currentUid] = { ...updated, avatarData: finalAvatarData };
+  
+  // Save to Firestore (without avatar)
   await window._fsSetUser(currentUid, updated);
 }
 
@@ -1384,8 +1399,13 @@ async function getProfileByUid(uid){
   if(profileCache[uid]) return profileCache[uid];
   try{
     const p = await window._fsGetUser(uid);
-    if(p) profileCache[uid] = { uid, ...p };
-    return p ? { uid, ...p } : null;
+    if(p){
+      // Load avatar from localStorage
+      const avatarData = window._fsGetAvatarLocal(uid) || "";
+      profileCache[uid] = { uid, ...p, avatarData };
+      return profileCache[uid];
+    }
+    return null;
   }catch(e){ return null; }
 }
 
