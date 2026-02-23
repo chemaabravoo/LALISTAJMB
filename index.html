@@ -1252,7 +1252,20 @@ function loadObjetivos(){
     return Array.isArray(d) ? d : [];
   }catch(e){ return []; }
 }
-function saveObjetivos(){ localStorage.setItem(storageKey(), JSON.stringify(objetivos)); }
+function saveObjetivos(){ 
+  try {
+    const data = JSON.stringify(objetivos);
+    const sizeKB = (data.length / 1024).toFixed(2);
+    console.log("DEBUG saveObjetivos - Saving", objetivos.length, "objectives, size:", sizeKB, "KB");
+    localStorage.setItem(storageKey(), data);
+    console.log("DEBUG saveObjetivos - Saved successfully");
+  } catch(e) {
+    console.error("ERROR saveObjetivos - Failed to save:", e.message);
+    if(e.name === "QuotaExceededError") {
+      alert("⚠️ Demasiadas fotos guardadas. El navegador tiene un límite de almacenamiento. Borra algunos objetivos antiguos.");
+    }
+  }
+}
 
 let objetivos = [];
 
@@ -1702,6 +1715,10 @@ function renderHome(cat){
   listViewContainer.style.display="";
 
   const list = objetivos.filter(o => cat==="Todos" || o.cat===cat);
+  console.log("DEBUG renderHome - Rendering", list.length, "objectives for category:", cat);
+  if(list.length > 0){
+    console.log("DEBUG renderHome - First objective:", list[0].titulo, "imgs:", list[0].imgs?.length, "firstImg:", firstImg(list[0])?.substring(0,50));
+  }
 
   carousel.innerHTML = list.map(o =>
     '<article class="objCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
@@ -2510,7 +2527,42 @@ $("#btnBackToList").addEventListener("click", () => { editingId=null; pendingLoc
 function updateLocalCount(){ $("#localCount").textContent = pendingLocalImgs.length+" seleccionadas"; }
 function filesToDataUrls(files){
   return Promise.all(Array.from(files).map(f => new Promise((res,rej) => {
-    const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f);
+    const r=new FileReader(); 
+    r.onload=()=>{
+      // Compress image before saving
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Scale down if image is too large (max 1200px on longest side)
+        const maxSize = 1200;
+        if(width > maxSize || height > maxSize) {
+          if(width > height) {
+            height = (height / width) * maxSize;
+            width = maxSize;
+          } else {
+            width = (width / height) * maxSize;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to JPEG with 0.7 quality (good balance between size and quality)
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        console.log("DEBUG Image compressed - Original:", (r.result.length/1024).toFixed(0), "KB → Compressed:", (compressed.length/1024).toFixed(0), "KB");
+        res(compressed);
+      };
+      img.onerror = rej;
+      img.src = r.result;
+    };
+    r.onerror=rej; 
+    r.readAsDataURL(f);
   })));
 }
 $("#pickLocalBtn").addEventListener("click", () => $("#localFiles").click());
@@ -2683,11 +2735,16 @@ $("#wNext").addEventListener("click", () => {
   if(manual) imgs.push(manual);
   imgs = [...new Set(imgs)].filter(Boolean);
 
+  console.log("DEBUG Wizard - imgs array:", imgs.length, "items");
+  console.log("DEBUG Wizard - first img:", imgs[0]?.substring(0,50));
+
   if(!imgs.length){ alert("Añade al menos una imagen: URL o foto del móvil."); return; }
 
   const nextId = objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1;
   const isPublic = !!$("#wPublic").checked;
-  objetivos.unshift({id:nextId,titulo,cat,coste,done:false,desc,imgs,place,lat,lng,isPublic});
+  const newObj = {id:nextId,titulo,cat,coste,done:false,desc,imgs,place,lat,lng,isPublic};
+  console.log("DEBUG Wizard - Created objective:", newObj.titulo, "with", newObj.imgs.length, "images");
+  objetivos.unshift(newObj);
 
   refreshEverywhere();
   closeWizard();
