@@ -2693,15 +2693,23 @@ async function shareAchievement(){
     ]);
     
     // Draw logo at top (if loaded)
+    let logoHeight = 0;
     if(logo.complete && logo.naturalWidth > 0){
       const logoWidth = 400;
-      const logoHeight = (logo.height / logo.width) * logoWidth;
+      logoHeight = (logo.height / logo.width) * logoWidth;
       const logoX = (canvas.width - logoWidth) / 2;
       ctx.drawImage(logo, logoX, 80, logoWidth, logoHeight);
+    } else {
+      // Fallback: draw text if logo didn't load
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 80px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("LA LISTA", canvas.width/2, 150);
+      logoHeight = 100;
     }
     
-    // Checkbox and title section
-    const boxY = 280;
+    // Checkbox and title section (adjust based on logo)
+    const boxY = 80 + logoHeight + 100;
     const boxSize = 60;
     const boxX = 140;
     
@@ -3211,25 +3219,25 @@ function renderReorderList(){
     +'</div>'
     +'</div>'
   ).join("");
-  
-  // Arrow button handlers
-  list.addEventListener("click", e => {
-    const btn = e.target.closest(".arrowBtn");
-    if(!btn || btn.classList.contains("disabled")) return;
-    
-    const item = btn.closest(".miniItem");
-    const idx = Number(item.dataset.reorderIdx);
-    const dir = btn.dataset.dir;
-    
-    if(dir === "up" && idx > 0){
-      [reorderTempList[idx], reorderTempList[idx-1]] = [reorderTempList[idx-1], reorderTempList[idx]];
-      renderReorderList();
-    } else if(dir === "down" && idx < reorderTempList.length-1){
-      [reorderTempList[idx], reorderTempList[idx+1]] = [reorderTempList[idx+1], reorderTempList[idx]];
-      renderReorderList();
-    }
-  });
 }
+
+// Objectives reorder button handler (attached once)
+$("#reorderList").addEventListener("click", e => {
+  const btn = e.target.closest(".arrowBtn");
+  if(!btn || btn.classList.contains("disabled")) return;
+  
+  const item = btn.closest(".miniItem");
+  const idx = Number(item.dataset.reorderIdx);
+  const dir = btn.dataset.dir;
+  
+  if(dir === "up" && idx > 0){
+    [reorderTempList[idx], reorderTempList[idx-1]] = [reorderTempList[idx-1], reorderTempList[idx]];
+    renderReorderList();
+  } else if(dir === "down" && idx < reorderTempList.length-1){
+    [reorderTempList[idx], reorderTempList[idx+1]] = [reorderTempList[idx+1], reorderTempList[idx]];
+    renderReorderList();
+  }
+});
 
 $("#reorderSave").addEventListener("click", () => {
   const items = [...$("#reorderList").querySelectorAll(".miniItem")];
@@ -3279,32 +3287,32 @@ function renderCategoryReorderList(){
     +'</div>'
     +'</div>'
   ).join("");
-  
-  // Arrow button handlers
-  list.addEventListener("click", e => {
-    const btn = e.target.closest(".arrowBtn");
-    if(!btn || btn.classList.contains("disabled")) return;
-    
-    const item = btn.closest(".categoryReorderItem");
-    const idx = Number(item.dataset.catIdx);
-    
-    if(btn.dataset.action === "delete"){
-      if(!confirm("¿Eliminar la categoría '"+tempCategoryOrder[idx]+"'?")) return;
-      tempCategoryOrder.splice(idx, 1);
-      renderCategoryReorderList();
-      return;
-    }
-    
-    const dir = btn.dataset.dir;
-    if(dir === "up" && idx > 0){
-      [tempCategoryOrder[idx], tempCategoryOrder[idx-1]] = [tempCategoryOrder[idx-1], tempCategoryOrder[idx]];
-      renderCategoryReorderList();
-    } else if(dir === "down" && idx < tempCategoryOrder.length-1){
-      [tempCategoryOrder[idx], tempCategoryOrder[idx+1]] = [tempCategoryOrder[idx+1], tempCategoryOrder[idx]];
-      renderCategoryReorderList();
-    }
-  });
 }
+
+// Category reorder button handler (attached once)
+$("#categoryReorderList").addEventListener("click", e => {
+  const btn = e.target.closest(".arrowBtn");
+  if(!btn || btn.classList.contains("disabled")) return;
+  
+  const item = btn.closest(".categoryReorderItem");
+  const idx = Number(item.dataset.catIdx);
+  
+  if(btn.dataset.action === "delete"){
+    if(!confirm("¿Eliminar la categoría '"+tempCategoryOrder[idx]+"'?")) return;
+    tempCategoryOrder.splice(idx, 1);
+    renderCategoryReorderList();
+    return;
+  }
+  
+  const dir = btn.dataset.dir;
+  if(dir === "up" && idx > 0){
+    [tempCategoryOrder[idx], tempCategoryOrder[idx-1]] = [tempCategoryOrder[idx-1], tempCategoryOrder[idx]];
+    renderCategoryReorderList();
+  } else if(dir === "down" && idx < tempCategoryOrder.length-1){
+    [tempCategoryOrder[idx], tempCategoryOrder[idx+1]] = [tempCategoryOrder[idx+1], tempCategoryOrder[idx]];
+    renderCategoryReorderList();
+  }
+});
 
 $("#categoryReorderSave").addEventListener("click", () => {
   const items = [...$("#categoryReorderList").querySelectorAll(".categoryReorderItem")];
