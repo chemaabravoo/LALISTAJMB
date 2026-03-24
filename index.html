@@ -379,6 +379,23 @@
       white-space:nowrap;flex:0 0 auto;
     }
     .tab.active{background:var(--pillActive);color:var(--ink);}
+    .tabSettings{
+      padding:10px 14px;border-radius:999px;background:#0000FF;border:none;
+      font-weight:750;font-size:16px;color:#fff;cursor:pointer;
+      white-space:nowrap;flex:0 0 auto;margin-left:4px;
+    }
+    .tabSettings:active{transform:translateY(1px);}
+    
+    /* Progress badge */
+    .progressBadge{
+      position:absolute;bottom:8px;right:8px;
+      background:rgba(0,0,255,.92);color:#fff;
+      border-radius:8px;padding:4px 8px;
+      font-size:11px;font-weight:900;
+      box-shadow:0 2px 8px rgba(0,0,0,.25);
+      backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    }
+    
     .viewToggleBtn{
       width:40px;height:40px;flex:0 0 auto;border-radius:14px;
       border:1px solid rgba(0,0,0,.10);background:#fff;cursor:pointer;font-size:16px;
@@ -600,6 +617,14 @@
       border-radius:16px;overflow:hidden;display:flex;gap:10px;cursor:pointer;transition:opacity .18s ease;
     }
     .miniItem.done{opacity:.62;}
+    .miniItem.dragging{opacity:.5;transform:scale(1.02);}
+    .miniItem.reorderable{position:relative;padding-left:40px;}
+    .dragHandle{
+      position:absolute;left:8px;top:50%;transform:translateY(-50%);
+      font-size:18px;color:rgba(11,16,34,.25);cursor:grab;
+      padding:8px;user-select:none;touch-action:none;
+    }
+    .dragHandle:active{cursor:grabbing;}
     .miniImg{width:72px;height:72px;background:center/cover no-repeat;flex:0 0 auto;}
     .miniText{padding:10px 10px 10px 0;min-width:0;flex:1;}
     .miniText b{display:block;color:var(--ink);font-size:13px;line-height:1.2;}
@@ -923,6 +948,7 @@
             <button class="tab" data-cat="Familia">Familia</button>
             <button class="tab" data-cat="Trabajo">Trabajo</button>
             <button class="tab" data-cat="Comunidad">👥 Comunidad</button>
+            <button class="tabSettings" id="tabSettingsBtn">⚙️</button>
           </div>
           <div id="homeActionsBar" style="padding:0 16px 12px;display:flex;gap:10px;align-items:center;">
             <button class="btn" id="addWizardBtn" style="flex:1;">Añadir objetivo</button>
@@ -1134,6 +1160,21 @@
           </div>
         </div>
 
+        <!-- REORDENAR OBJETIVOS MODAL -->
+        <div class="modalBack" id="reorderBack">
+          <div class="modal">
+            <div class="modalHead"><strong>Ordenar objetivos</strong><button class="close" id="reorderClose">✕</button></div>
+            <div class="modalBody">
+              <div class="smallNote">Mantén presionado y arrastra para reordenar.</div>
+              <div class="miniList" id="reorderList"></div>
+            </div>
+            <div class="modalActions">
+              <button class="ghost" id="reorderCancel">Cancelar</button>
+              <button class="primary" id="reorderSave">Guardar orden</button>
+            </div>
+          </div>
+        </div>
+
         <!-- BUSCAR HOME MODAL (usuario + ideas) -->
         <div class="modalBack" id="homeSearchBack">
           <div class="modal" style="max-height:88vh;display:flex;flex-direction:column;">
@@ -1326,6 +1367,16 @@ function escapeHTML(str){
   return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[s]));
 }
 function firstImg(o){ return (o.imgs && o.imgs.length) ? o.imgs[0] : ""; }
+function taskProgress(o){
+  if(!o.tasks || o.tasks.length === 0) return null;
+  const done = o.tasks.filter(t => t.done).length;
+  const total = o.tasks.length;
+  return Math.round((done/total)*100);
+}
+function progressBadge(o){
+  const p = taskProgress(o);
+  return p !== null ? '<div class="progressBadge">'+p+'%</div>' : '';
+}
 
 /* ================================================================
    FIREBASE AUTH
@@ -1769,7 +1820,7 @@ function renderHome(cat){
 
   carousel.innerHTML = list.map(o =>
     '<article class="objCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
-    +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+    +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'+progressBadge(o)+'</div>'
     +'<div class="objBody"><div>'
     +'<div class="objTitle">'+escapeHTML(o.titulo)+'</div>'
     +'<div class="objMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
@@ -1779,7 +1830,7 @@ function renderHome(cat){
 
   listViewContainer.innerHTML = list.map(o =>
     '<div class="listObjCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
-    +'<div class="listObjImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+    +'<div class="listObjImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'+progressBadge(o)+'</div>'
     +'<div class="listObjBody">'
     +'<div class="listObjTitle">'+escapeHTML(o.titulo)+'</div>'
     +'<div class="listObjMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
@@ -2857,6 +2908,90 @@ $("#wNext").addEventListener("click", () => {
 });
 
 $("#addWizardBtn").addEventListener("click", () => openWizard());
+
+/* ================================================================
+   REORDER OBJECTIVES
+================================================================ */
+let reorderTempList = [];
+let draggedItem = null;
+
+function openReorderModal(){
+  reorderTempList = [...objetivos];
+  renderReorderList();
+  $("#reorderBack").classList.add("show");
+}
+function closeReorderModal(){
+  $("#reorderBack").classList.remove("show");
+}
+
+function renderReorderList(){
+  const list = $("#reorderList");
+  list.innerHTML = reorderTempList.map((o,i) =>
+    '<div class="miniItem reorderable" draggable="true" data-reorder-idx="'+i+'">'
+    +'<div class="dragHandle">☰</div>'
+    +'<div class="miniImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
+    +'<div class="miniText"><b>'+escapeHTML(o.titulo)+'</b><span>'+escapeHTML(o.cat)+' · '+eur(o.coste)+'</span></div>'
+    +'</div>'
+  ).join("");
+}
+
+$("#reorderList").addEventListener("dragstart", e => {
+  const item = e.target.closest(".miniItem");
+  if(!item) return;
+  draggedItem = item;
+  item.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+});
+
+$("#reorderList").addEventListener("dragend", e => {
+  const item = e.target.closest(".miniItem");
+  if(item) item.classList.remove("dragging");
+  draggedItem = null;
+});
+
+$("#reorderList").addEventListener("dragover", e => {
+  e.preventDefault();
+  const afterElement = getDragAfterElement($("#reorderList"), e.clientY);
+  if(afterElement == null){
+    $("#reorderList").appendChild(draggedItem);
+  } else {
+    $("#reorderList").insertBefore(draggedItem, afterElement);
+  }
+});
+
+function getDragAfterElement(container, y){
+  const draggableElements = [...container.querySelectorAll(".miniItem:not(.dragging)")];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if(offset < 0 && offset > closest.offset){
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+$("#reorderSave").addEventListener("click", () => {
+  const items = [...$("#reorderList").querySelectorAll(".miniItem")];
+  const newOrder = items.map(item => {
+    const idx = Number(item.dataset.reorderIdx);
+    return reorderTempList[idx];
+  });
+  objetivos.length = 0;
+  objetivos.push(...newOrder);
+  refreshEverywhere();
+  closeReorderModal();
+});
+
+$("#reorderCancel").addEventListener("click", closeReorderModal);
+$("#reorderClose").addEventListener("click", closeReorderModal);
+$("#reorderBack").addEventListener("click", e => {
+  if(e.target === $("#reorderBack")) closeReorderModal();
+});
+
+$("#tabSettingsBtn").addEventListener("click", openReorderModal);
+
 </script>
 </body>
 </html>
