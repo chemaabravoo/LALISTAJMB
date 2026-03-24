@@ -1,6 +1,7 @@
 {
   "name": "La Lista",
   "short_name": "La Lista",
+  "description": "Tus objetivos, tu historia",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0B1022",
