@@ -867,7 +867,9 @@
   <!-- =============== PANTALLA ONBOARDING + AUTH =============== -->
   <div class="screen active" id="screen-auth">
     <section class="onboarding">
-      <div class="obLogo">LA LISTA</div>
+      <div class="obLogo">
+        <img src="https://chemaabravoo.github.io/LALISTAJMB/logo.png" alt="La Lista" style="max-width:280px;width:100%;height:auto;" />
+      </div>
       <div class="obHero">
         <div class="obTitle">Tus objetivos.<br>Tu historia.</div>
         <div class="obSubtitle">
@@ -2650,198 +2652,186 @@ async function shareAchievement(){
   const o = objetivos.find(x => x.id===selectedId);
   if(!o || !o.done) return;
   
-  // Calculate objectives counter
-  const totalObjectives = objetivos.length;
-  const completedObjectives = objetivos.filter(obj => obj.done).length;
-  const currentIndex = objetivos.filter(obj => obj.done).indexOf(o) + 1;
-  
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  
-  // Canvas size (Instagram story format)
-  canvas.width = 1080;
-  canvas.height = 1920;
-  
-  // Background - dark blue
-  ctx.fillStyle = "#1a2332";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Load logo from GitHub
-  const logo = new Image();
-  logo.crossOrigin = "anonymous";
-  logo.src = "https://chemaabravoo.github.io/LALISTAJMB/logo-blanco.png";
-  
-  // Load objective image
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-  
-  return new Promise((resolve, reject) => {
-    let logoLoaded = false;
-    let imageLoaded = false;
+  try {
+    // Calculate objectives counter
+    const totalObjectives = objetivos.length;
+    const completedObjectives = objetivos.filter(obj => obj.done).length;
     
-    function checkAndDraw(){
-      if(!logoLoaded || !imageLoaded) return;
-      
-      // Draw logo at top (scaled appropriately)
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Canvas size (Instagram story format)
+    canvas.width = 1080;
+    canvas.height = 1920;
+    
+    // Background - dark blue
+    ctx.fillStyle = "#1a2332";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Load logo and objective image
+    const logo = new Image();
+    logo.crossOrigin = "anonymous";
+    
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    // Load images
+    await Promise.all([
+      new Promise((resolve, reject) => {
+        logo.onload = resolve;
+        logo.onerror = () => {
+          console.log("Logo failed to load");
+          resolve(); // Continue without logo
+        };
+        logo.src = "https://chemaabravoo.github.io/LALISTAJMB/logo-blanco.png";
+      }),
+      new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = firstImg(o);
+      })
+    ]);
+    
+    // Draw logo at top (if loaded)
+    if(logo.complete && logo.naturalWidth > 0){
       const logoWidth = 400;
       const logoHeight = (logo.height / logo.width) * logoWidth;
       const logoX = (canvas.width - logoWidth) / 2;
       ctx.drawImage(logo, logoX, 80, logoWidth, logoHeight);
-      
-      // Checkbox and title section
-      const boxY = logoHeight + 180;
-      const boxSize = 60;
-      const boxX = 140;
-      
-      // Checkbox
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(boxX, boxY, boxSize, boxSize);
-      
-      // Checkmark
-      ctx.strokeStyle = "#1a2332";
-      ctx.lineWidth = 8;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(boxX + 15, boxY + 30);
-      ctx.lineTo(boxX + 25, boxY + 42);
-      ctx.lineTo(boxX + 45, boxY + 18);
-      ctx.stroke();
-      
-      // Title (strikethrough)
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 48px system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "left";
-      
-      const titleX = boxX + boxSize + 20;
-      const titleY = boxY + 42;
-      const maxWidth = 780;
-      
-      // Wrap text if too long
-      const words = o.titulo.split(" ");
-      let line = "";
-      let lines = [];
-      
-      for(let word of words){
-        const testLine = line + word + " ";
-        const metrics = ctx.measureText(testLine);
-        if(metrics.width > maxWidth && line !== ""){
-          lines.push(line.trim());
-          line = word + " ";
-        } else {
-          line = testLine;
-        }
-      }
-      if(line) lines.push(line.trim());
-      
-      // Draw text lines with strikethrough
-      lines.forEach((l, i) => {
-        const y = titleY + (i * 60);
-        ctx.fillText(l, titleX, y);
-        
-        // Strikethrough
-        const textWidth = ctx.measureText(l).width;
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(titleX, y - 12);
-        ctx.lineTo(titleX + textWidth, y - 12);
-        ctx.stroke();
-      });
-      
-      // "Objetivo X/Y" text
-      const counterY = boxY + (lines.length * 60) + 40;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "600 40px system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(`Objetivo ${completedObjectives}/${totalObjectives}`, boxX, counterY);
-      
-      // Draw objective image
-      const imgY = counterY + 60;
-      const imgWidth = 800;
-      const imgHeight = 800;
-      const imgX = (canvas.width - imgWidth) / 2;
-      
-      // Draw image with rounded corners and border
-      ctx.save();
-      
-      // White border/frame
-      ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath();
-      ctx.roundRect(imgX - 10, imgY - 10, imgWidth + 20, imgHeight + 20, 20);
-      ctx.fill();
-      
-      // Clip for image
-      ctx.beginPath();
-      ctx.roundRect(imgX, imgY, imgWidth, imgHeight, 15);
-      ctx.clip();
-      
-      // Calculate aspect ratio
-      const scale = Math.max(imgWidth / img.width, imgHeight / img.height);
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      const offsetX = imgX + (imgWidth - scaledWidth) / 2;
-      const offsetY = imgY + (imgHeight - scaledHeight) / 2;
-      
-      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
-      ctx.restore();
-      
-      // Convert to blob and share
-      canvas.toBlob(blob => {
-        if(!blob){
-          alert("Error al generar la imagen");
-          reject();
-          return;
-        }
-        
-        const file = new File([blob], "la-lista-objetivo-cumplido.png", { type: "image/png" });
-        
-        // Try native share API
-        if(navigator.share){
-          navigator.share({
-            files: [file],
-            title: "¡Objetivo cumplido! 🎉",
-            text: "He cumplido: " + o.titulo
-          }).then(() => {
-            console.log("Shared successfully");
-            resolve();
-          }).catch(err => {
-            console.log("Share cancelled or failed:", err);
-            downloadImage(blob);
-            resolve();
-          });
-        } else {
-          // Fallback: download
-          downloadImage(blob);
-          resolve();
-        }
-      }, "image/png");
     }
     
-    logo.onload = () => {
-      logoLoaded = true;
-      checkAndDraw();
-    };
+    // Checkbox and title section
+    const boxY = 280;
+    const boxSize = 60;
+    const boxX = 140;
     
-    logo.onerror = () => {
-      console.log("Logo failed to load, continuing without it");
-      logoLoaded = true;
-      checkAndDraw();
-    };
+    // Checkbox
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(boxX, boxY, boxSize, boxSize);
     
-    img.onload = () => {
-      imageLoaded = true;
-      checkAndDraw();
-    };
+    // Checkmark
+    ctx.strokeStyle = "#1a2332";
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(boxX + 15, boxY + 30);
+    ctx.lineTo(boxX + 25, boxY + 42);
+    ctx.lineTo(boxX + 45, boxY + 18);
+    ctx.stroke();
     
-    img.onerror = () => {
-      alert("Error al cargar la imagen del objetivo");
-      reject();
-    };
+    // Title (strikethrough)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 48px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "left";
     
-    // Load first image
-    img.src = firstImg(o);
-  });
+    const titleX = boxX + boxSize + 20;
+    const titleY = boxY + 42;
+    const maxWidth = 780;
+    
+    // Wrap text if too long
+    const words = o.titulo.split(" ");
+    let line = "";
+    let lines = [];
+    
+    for(let word of words){
+      const testLine = line + word + " ";
+      const metrics = ctx.measureText(testLine);
+      if(metrics.width > maxWidth && line !== ""){
+        lines.push(line.trim());
+        line = word + " ";
+      } else {
+        line = testLine;
+      }
+    }
+    if(line) lines.push(line.trim());
+    
+    // Draw text lines with strikethrough
+    lines.forEach((l, i) => {
+      const y = titleY + (i * 60);
+      ctx.fillText(l, titleX, y);
+      
+      // Strikethrough
+      const textWidth = ctx.measureText(l).width;
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(titleX, y - 12);
+      ctx.lineTo(titleX + textWidth, y - 12);
+      ctx.stroke();
+    });
+    
+    // "Objetivo X/Y" text
+    const counterY = boxY + (lines.length * 60) + 40;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "600 40px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`Objetivo ${completedObjectives}/${totalObjectives}`, boxX, counterY);
+    
+    // Draw objective image
+    const imgY = counterY + 60;
+    const imgWidth = 800;
+    const imgHeight = 800;
+    const imgX = (canvas.width - imgWidth) / 2;
+    
+    // Draw image with rounded corners and border
+    ctx.save();
+    
+    // White border/frame
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.roundRect(imgX - 10, imgY - 10, imgWidth + 20, imgHeight + 20, 20);
+    ctx.fill();
+    
+    // Clip for image
+    ctx.beginPath();
+    ctx.roundRect(imgX, imgY, imgWidth, imgHeight, 15);
+    ctx.clip();
+    
+    // Calculate aspect ratio
+    const scale = Math.max(imgWidth / img.width, imgHeight / img.height);
+    const scaledWidth = img.width * scale;
+    const scaledHeight = img.height * scale;
+    const offsetX = imgX + (imgWidth - scaledWidth) / 2;
+    const offsetY = imgY + (imgHeight - scaledHeight) / 2;
+    
+    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+    ctx.restore();
+    
+    // Convert to blob
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    
+    if(!blob){
+      alert("Error al generar la imagen");
+      return;
+    }
+    
+    const file = new File([blob], "la-lista-objetivo-cumplido.png", { type: "image/png" });
+    
+    // Try native share API
+    if(navigator.share && navigator.canShare && navigator.canShare({files: [file]})){
+      try {
+        await navigator.share({
+          files: [file],
+          title: "¡Objetivo cumplido! 🎉",
+          text: "He cumplido: " + o.titulo
+        });
+        console.log("Shared successfully");
+      } catch(err) {
+        if(err.name !== "AbortError"){
+          console.log("Share failed, downloading instead");
+          downloadImage(blob);
+        }
+      }
+    } else {
+      // Fallback: download
+      downloadImage(blob);
+    }
+    
+  } catch(error) {
+    console.error("Error in shareAchievement:", error);
+    alert("Error al generar la imagen. Inténtalo de nuevo.");
+  }
 }
 
 function downloadImage(blob){
