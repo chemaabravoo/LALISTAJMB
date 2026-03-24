@@ -395,6 +395,9 @@
       box-shadow:0 2px 8px rgba(0,0,0,.25);
       backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
     }
+    .progressBadge.complete{
+      background:rgba(34,197,94,.92);
+    }
     
     .viewToggleBtn{
       width:40px;height:40px;flex:0 0 auto;border-radius:14px;
@@ -1340,6 +1343,7 @@
         <div class="detailTopBtns">
           <button class="iconBtn" id="backBtn">←</button>
           <div style="display:flex;gap:8px;">
+            <button class="iconBtn" id="editObjBtn">✏️</button>
             <button class="iconBtn" id="shareBtn" style="display:none;">📤</button>
             <button class="iconBtn" id="toggleDoneTop">♡</button>
           </div>
@@ -1453,7 +1457,9 @@ function taskProgress(o){
 }
 function progressBadge(o){
   const p = taskProgress(o);
-  return p !== null ? '<div class="progressBadge">'+p+'%</div>' : '';
+  if(p === null) return '';
+  const completeClass = p === 100 ? ' complete' : '';
+  return '<div class="progressBadge'+completeClass+'">'+p+'%</div>';
 }
 
 /* ================================================================
@@ -2665,6 +2671,12 @@ function toggleDone(){
 }
 
 $("#backBtn").addEventListener("click", closeDetail);
+$("#editObjBtn").addEventListener("click", () => {
+  const o = objetivos.find(x => x.id === selectedId);
+  if(!o) return;
+  closeDetail();
+  openSettings(o.id);
+});
 $("#toggleDoneBtn").addEventListener("click", toggleDone);
 $("#toggleDoneTop").addEventListener("click", toggleDone);
 
