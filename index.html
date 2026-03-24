@@ -604,12 +604,16 @@
       display:none;align-items:flex-end;justify-content:center;padding:14px;z-index:80;
     }
     .modalBack.show{display:flex;}
+    /* Wizard modal centered and larger */
+    #wizardBack{align-items:center;}
+    #wizardBack .modal{max-height:85vh;}
     .modal{width:100%;background:#fff;border-radius:20px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.08);overflow:hidden;}
     .modalHead{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 10px;border-bottom:1px solid rgba(0,0,0,.08);}
     .modalHead strong{color:var(--ink);font-size:14px;}
     .close{border:none;width:40px;height:40px;border-radius:14px;background:rgba(0,0,0,.06);cursor:pointer;color:var(--ink);font-size:18px;}
     .modalBody{padding:12px;max-height:min(72vh,600px);overflow:auto;-webkit-overflow-scrolling:touch;}
-    .modalActions{display:flex;gap:10px;padding:12px;border-top:1px solid rgba(0,0,0,.08);}
+    #wizardBack .modalBody{max-height:calc(85vh - 130px);}
+    .modalActions{display:flex;gap:10px;padding:12px;border-top:1px solid rgba(0,0,0,.08;}
     .primary,.ghost,.danger{flex:1;border-radius:14px;padding:12px;font-weight:900;border:1px solid rgba(0,0,0,.10);cursor:pointer;font-size:13px;}
     .ghost{background:#fff;color:var(--ink);}
     .primary{background:#0b1022;color:#fff;border-color:#0b1022;}
@@ -894,7 +898,7 @@
   <div class="screen active" id="screen-auth">
     <section class="onboarding">
       <div class="obLogo">
-        <img src="logo.png" alt="La Lista" style="max-width:280px;width:100%;height:auto;" />
+        <img src="logo-blanco.png" alt="La Lista" style="max-width:280px;width:100%;height:auto;" />
       </div>
       <div class="obHero">
         <div class="obTitle">Tus objetivos.<br>Tu historia.</div>
