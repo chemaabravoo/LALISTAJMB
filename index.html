@@ -625,6 +625,15 @@
       padding:8px;user-select:none;touch-action:none;
     }
     .dragHandle:active{cursor:grabbing;}
+    .categoryReorderItem{
+      background:#fff;border:1px solid rgba(0,0,0,.08);
+      box-shadow:var(--shadow2);border-radius:14px;
+      padding:14px 14px 14px 48px;position:relative;
+      cursor:grab;user-select:none;
+    }
+    .categoryReorderItem:active{cursor:grabbing;}
+    .categoryReorderItem.dragging{opacity:.5;transform:scale(1.02);}
+    .categoryName{font-size:14px;font-weight:800;color:var(--ink);}
     .miniImg{width:72px;height:72px;background:center/cover no-repeat;flex:0 0 auto;}
     .miniText{padding:10px 10px 10px 0;min-width:0;flex:1;}
     .miniText b{display:block;color:var(--ink);font-size:13px;line-height:1.2;}
@@ -1156,6 +1165,21 @@
             <div class="modalActions">
               <button class="ghost" id="profileEditCancel">Cancelar</button>
               <button class="primary" id="profileEditSave">Guardar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- REORDENAR CATEGORÍAS MODAL -->
+        <div class="modalBack" id="categoryReorderBack">
+          <div class="modal">
+            <div class="modalHead"><strong>Ordenar categorías</strong><button class="close" id="categoryReorderClose">✕</button></div>
+            <div class="modalBody">
+              <div class="smallNote">Mantén presionado y arrastra para reordenar las pestañas.</div>
+              <div id="categoryReorderList" style="display:grid;gap:10px;"></div>
+            </div>
+            <div class="modalActions">
+              <button class="ghost" id="categoryReorderCancel">Cancelar</button>
+              <button class="primary" id="categoryReorderSave">Guardar orden</button>
             </div>
           </div>
         </div>
@@ -2604,7 +2628,15 @@ let pendingLocalImgs = [];
 
 function openSettings(){ showSettingsList(); $("#settingsBack").classList.add("show"); }
 function closeSettings(){ $("#settingsBack").classList.remove("show"); editingId=null; pendingLocalImgs=[]; updateLocalCount(); }
-$("#gearBtn").addEventListener("click", openSettings);
+$("#gearBtn").addEventListener("click", () => {
+  if(currentView === "home"){
+    openReorderModal();
+  } else if(currentView === "profile"){
+    openProfileEdit();
+  } else {
+    openSettings();
+  }
+});
 $("#settingsClose").addEventListener("click", closeSettings);
 $("#settingsBack").addEventListener("click", e => { if(e.target===$("#settingsBack")) closeSettings(); });
 $("#btnCloseList").addEventListener("click", closeSettings);
@@ -2927,49 +2959,15 @@ function closeReorderModal(){
 function renderReorderList(){
   const list = $("#reorderList");
   list.innerHTML = reorderTempList.map((o,i) =>
-    '<div class="miniItem reorderable" draggable="true" data-reorder-idx="'+i+'">'
+    '<div class="miniItem reorderable" data-reorder-idx="'+i+'">'
     +'<div class="dragHandle">☰</div>'
     +'<div class="miniImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
     +'<div class="miniText"><b>'+escapeHTML(o.titulo)+'</b><span>'+escapeHTML(o.cat)+' · '+eur(o.coste)+'</span></div>'
     +'</div>'
   ).join("");
-}
-
-$("#reorderList").addEventListener("dragstart", e => {
-  const item = e.target.closest(".miniItem");
-  if(!item) return;
-  draggedItem = item;
-  item.classList.add("dragging");
-  e.dataTransfer.effectAllowed = "move";
-});
-
-$("#reorderList").addEventListener("dragend", e => {
-  const item = e.target.closest(".miniItem");
-  if(item) item.classList.remove("dragging");
-  draggedItem = null;
-});
-
-$("#reorderList").addEventListener("dragover", e => {
-  e.preventDefault();
-  const afterElement = getDragAfterElement($("#reorderList"), e.clientY);
-  if(afterElement == null){
-    $("#reorderList").appendChild(draggedItem);
-  } else {
-    $("#reorderList").insertBefore(draggedItem, afterElement);
-  }
-});
-
-function getDragAfterElement(container, y){
-  const draggableElements = [...container.querySelectorAll(".miniItem:not(.dragging)")];
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if(offset < 0 && offset > closest.offset){
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
+  
+  // Setup touch drag for mobile
+  setupTouchDrag(list);
 }
 
 $("#reorderSave").addEventListener("click", () => {
@@ -2990,7 +2988,144 @@ $("#reorderBack").addEventListener("click", e => {
   if(e.target === $("#reorderBack")) closeReorderModal();
 });
 
-$("#tabSettingsBtn").addEventListener("click", openReorderModal);
+$("#tabSettingsBtn").addEventListener("click", openCategoryReorder);
+
+/* ================================================================
+   CATEGORY REORDER
+================================================================ */
+const categoryOrder = ["Todos", "Viajes", "Experiencias", "Familia", "Trabajo", "Comunidad"];
+let tempCategoryOrder = [];
+
+// Universal touch drag handler for mobile
+function setupTouchDrag(container){
+  let draggedEl = null;
+  let placeholder = null;
+  let startY = 0;
+  let currentY = 0;
+
+  container.addEventListener("touchstart", e => {
+    const item = e.target.closest(".categoryReorderItem, .miniItem.reorderable");
+    if(!item || !e.target.closest(".dragHandle")) return;
+    
+    draggedEl = item;
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    
+    placeholder = item.cloneNode(true);
+    placeholder.style.opacity = "0.3";
+    placeholder.style.pointerEvents = "none";
+    
+    draggedEl.classList.add("dragging");
+    draggedEl.style.position = "fixed";
+    draggedEl.style.zIndex = "1000";
+    draggedEl.style.width = item.offsetWidth + "px";
+    draggedEl.style.left = item.getBoundingClientRect().left + "px";
+    
+    item.parentNode.insertBefore(placeholder, item);
+  }, {passive: false});
+
+  container.addEventListener("touchmove", e => {
+    if(!draggedEl) return;
+    e.preventDefault();
+    
+    currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
+    draggedEl.style.top = (placeholder.getBoundingClientRect().top + deltaY) + "px";
+    
+    // Find element under touch
+    const elementsBelow = document.elementsFromPoint(e.touches[0].clientX, currentY);
+    const targetItem = elementsBelow.find(el => 
+      (el.classList.contains("categoryReorderItem") || el.classList.contains("miniItem")) 
+      && el !== draggedEl && el !== placeholder
+    );
+    
+    if(targetItem){
+      const rect = targetItem.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      
+      if(currentY < midpoint){
+        targetItem.parentNode.insertBefore(placeholder, targetItem);
+      } else {
+        targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
+      }
+    }
+  }, {passive: false});
+
+  container.addEventListener("touchend", e => {
+    if(!draggedEl) return;
+    
+    draggedEl.style.position = "";
+    draggedEl.style.zIndex = "";
+    draggedEl.style.width = "";
+    draggedEl.style.left = "";
+    draggedEl.style.top = "";
+    draggedEl.classList.remove("dragging");
+    
+    if(placeholder && placeholder.parentNode){
+      placeholder.parentNode.insertBefore(draggedEl, placeholder);
+      placeholder.remove();
+    }
+    
+    draggedEl = null;
+    placeholder = null;
+  });
+}
+
+function openCategoryReorder(){
+  tempCategoryOrder = [...categoryOrder];
+  renderCategoryReorderList();
+  $("#categoryReorderBack").classList.add("show");
+}
+
+function closeCategoryReorder(){
+  $("#categoryReorderBack").classList.remove("show");
+}
+
+function renderCategoryReorderList(){
+  const list = $("#categoryReorderList");
+  list.innerHTML = tempCategoryOrder.map((cat,i) =>
+    '<div class="categoryReorderItem" data-cat-idx="'+i+'">'
+    +'<div class="dragHandle">☰</div>'
+    +'<div class="categoryName">'+escapeHTML(cat)+'</div>'
+    +'</div>'
+  ).join("");
+  
+  // Touch drag handlers
+  setupTouchDrag(list);
+}
+
+$("#categoryReorderSave").addEventListener("click", () => {
+  const items = [...$("#categoryReorderList").querySelectorAll(".categoryReorderItem")];
+  const newOrder = items.map(item => tempCategoryOrder[Number(item.dataset.catIdx)]);
+  categoryOrder.length = 0;
+  categoryOrder.push(...newOrder);
+  renderCategoryTabs();
+  closeCategoryReorder();
+});
+
+$("#categoryReorderCancel").addEventListener("click", closeCategoryReorder);
+$("#categoryReorderClose").addEventListener("click", closeCategoryReorder);
+$("#categoryReorderBack").addEventListener("click", e => {
+  if(e.target === $("#categoryReorderBack")) closeCategoryReorder();
+});
+
+function renderCategoryTabs(){
+  const tabsContainer = $(".tabs");
+  const existingTabs = categoryOrder.map(cat => 
+    '<button class="tab'+(currentCat===cat?' active':'')+'" data-cat="'+cat+'">'+cat+'</button>'
+  ).join("");
+  tabsContainer.innerHTML = existingTabs + '<button class="tabSettings" id="tabSettingsBtn">⚙️</button>';
+  
+  // Re-attach event listeners
+  $$(".tab").forEach(t => t.addEventListener("click", () => {
+    $$(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    renderHome(t.dataset.cat);
+  }));
+  
+  // Re-attach settings button
+  $("#tabSettingsBtn").addEventListener("click", openCategoryReorder);
+}
 
 </script>
 </body>
