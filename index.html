@@ -2650,6 +2650,11 @@ async function shareAchievement(){
   const o = objetivos.find(x => x.id===selectedId);
   if(!o || !o.done) return;
   
+  // Calculate objectives counter
+  const totalObjectives = objetivos.length;
+  const completedObjectives = objetivos.filter(obj => obj.done).length;
+  const currentIndex = objetivos.filter(obj => obj.done).indexOf(o) + 1;
+  
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   
@@ -2657,95 +2662,118 @@ async function shareAchievement(){
   canvas.width = 1080;
   canvas.height = 1920;
   
-  // Background gradient
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  gradient.addColorStop(0, "#0000FF");
-  gradient.addColorStop(1, "#000080");
-  ctx.fillStyle = gradient;
+  // Background - dark blue
+  ctx.fillStyle = "#1a2332";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Logo "La Lista" at top
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "bold 80px system-ui, -apple-system, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("La Lista", canvas.width/2, 150);
+  // Load logo from GitHub
+  const logo = new Image();
+  logo.crossOrigin = "anonymous";
+  logo.src = "https://chemaabravoo.github.io/LALISTAJMB/logo-blanco.png";
   
-  // Checkmark box and title
-  const boxY = 280;
-  const boxSize = 80;
-  const boxX = (canvas.width - 800) / 2;
-  
-  // Checkbox
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(boxX, boxY, boxSize, boxSize);
-  
-  // Checkmark
-  ctx.strokeStyle = "#0000FF";
-  ctx.lineWidth = 12;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(boxX + 20, boxY + 40);
-  ctx.lineTo(boxX + 35, boxY + 60);
-  ctx.lineTo(boxX + 60, boxY + 25);
-  ctx.stroke();
-  
-  // Title (strikethrough)
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "bold 60px system-ui, -apple-system, sans-serif";
-  ctx.textAlign = "left";
-  
-  const titleX = boxX + boxSize + 30;
-  const titleY = boxY + 55;
-  const maxWidth = 800 - boxSize - 30;
-  
-  // Wrap text if too long
-  const words = o.titulo.split(" ");
-  let line = "";
-  let lines = [];
-  
-  for(let word of words){
-    const testLine = line + word + " ";
-    const metrics = ctx.measureText(testLine);
-    if(metrics.width > maxWidth && line !== ""){
-      lines.push(line.trim());
-      line = word + " ";
-    } else {
-      line = testLine;
-    }
-  }
-  if(line) lines.push(line.trim());
-  
-  // Draw text lines
-  lines.forEach((l, i) => {
-    const y = titleY + (i * 70);
-    ctx.fillText(l, titleX, y);
-    
-    // Strikethrough
-    const textWidth = ctx.measureText(l).width;
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(titleX, y - 15);
-    ctx.lineTo(titleX + textWidth, y - 15);
-    ctx.stroke();
-  });
-  
-  // Load and draw objective image
+  // Load objective image
   const img = new Image();
   img.crossOrigin = "anonymous";
   
   return new Promise((resolve, reject) => {
-    img.onload = () => {
-      const imgY = boxY + (lines.length * 70) + 80;
-      const imgWidth = 900;
-      const imgHeight = 900;
+    let logoLoaded = false;
+    let imageLoaded = false;
+    
+    function checkAndDraw(){
+      if(!logoLoaded || !imageLoaded) return;
+      
+      // Draw logo at top (scaled appropriately)
+      const logoWidth = 400;
+      const logoHeight = (logo.height / logo.width) * logoWidth;
+      const logoX = (canvas.width - logoWidth) / 2;
+      ctx.drawImage(logo, logoX, 80, logoWidth, logoHeight);
+      
+      // Checkbox and title section
+      const boxY = logoHeight + 180;
+      const boxSize = 60;
+      const boxX = 140;
+      
+      // Checkbox
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(boxX, boxY, boxSize, boxSize);
+      
+      // Checkmark
+      ctx.strokeStyle = "#1a2332";
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(boxX + 15, boxY + 30);
+      ctx.lineTo(boxX + 25, boxY + 42);
+      ctx.lineTo(boxX + 45, boxY + 18);
+      ctx.stroke();
+      
+      // Title (strikethrough)
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 48px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "left";
+      
+      const titleX = boxX + boxSize + 20;
+      const titleY = boxY + 42;
+      const maxWidth = 780;
+      
+      // Wrap text if too long
+      const words = o.titulo.split(" ");
+      let line = "";
+      let lines = [];
+      
+      for(let word of words){
+        const testLine = line + word + " ";
+        const metrics = ctx.measureText(testLine);
+        if(metrics.width > maxWidth && line !== ""){
+          lines.push(line.trim());
+          line = word + " ";
+        } else {
+          line = testLine;
+        }
+      }
+      if(line) lines.push(line.trim());
+      
+      // Draw text lines with strikethrough
+      lines.forEach((l, i) => {
+        const y = titleY + (i * 60);
+        ctx.fillText(l, titleX, y);
+        
+        // Strikethrough
+        const textWidth = ctx.measureText(l).width;
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(titleX, y - 12);
+        ctx.lineTo(titleX + textWidth, y - 12);
+        ctx.stroke();
+      });
+      
+      // "Objetivo X/Y" text
+      const counterY = boxY + (lines.length * 60) + 40;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "600 40px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`Objetivo ${completedObjectives}/${totalObjectives}`, boxX, counterY);
+      
+      // Draw objective image
+      const imgY = counterY + 60;
+      const imgWidth = 800;
+      const imgHeight = 800;
       const imgX = (canvas.width - imgWidth) / 2;
       
-      // Draw image with rounded corners
+      // Draw image with rounded corners and border
       ctx.save();
+      
+      // White border/frame
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
-      ctx.roundRect(imgX, imgY, imgWidth, imgHeight, 40);
+      ctx.roundRect(imgX - 10, imgY - 10, imgWidth + 20, imgHeight + 20, 20);
+      ctx.fill();
+      
+      // Clip for image
+      ctx.beginPath();
+      ctx.roundRect(imgX, imgY, imgWidth, imgHeight, 15);
       ctx.clip();
       
       // Calculate aspect ratio
@@ -2788,6 +2816,22 @@ async function shareAchievement(){
           resolve();
         }
       }, "image/png");
+    }
+    
+    logo.onload = () => {
+      logoLoaded = true;
+      checkAndDraw();
+    };
+    
+    logo.onerror = () => {
+      console.log("Logo failed to load, continuing without it");
+      logoLoaded = true;
+      checkAndDraw();
+    };
+    
+    img.onload = () => {
+      imageLoaded = true;
+      checkAndDraw();
     };
     
     img.onerror = () => {
