@@ -842,6 +842,29 @@
       border-top-color:#0000FF;border-radius:50%;animation:spin .7s linear infinite;
     }
   </style>
+  <!-- PWA Configuration -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0000FF">
+  
+  <!-- iOS Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="La Lista">
+  <link rel="apple-touch-icon" href="logo.png">
+  
+  <!-- Android/Chrome -->
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Service Worker Registration -->
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('✅ Service Worker registrado'))
+        .catch(err => console.log('❌ Service Worker error:', err));
+    });
+  }
+  </script>
 </head>
 
 <body>
@@ -868,7 +891,7 @@
   <div class="screen active" id="screen-auth">
     <section class="onboarding">
       <div class="obLogo">
-        <img src="https://chemaabravoo.github.io/LALISTAJMB/logo.png" alt="La Lista" style="max-width:280px;width:100%;height:auto;" />
+        <img src="logo.png" alt="La Lista" style="max-width:280px;width:100%;height:auto;" />
       </div>
       <div class="obHero">
         <div class="obTitle">Tus objetivos.<br>Tu historia.</div>
@@ -2683,7 +2706,7 @@ async function shareAchievement(){
           console.log("Logo failed to load");
           resolve(); // Continue without logo
         };
-        logo.src = "https://chemaabravoo.github.io/LALISTAJMB/logo-blanco.png";
+        logo.src = "logo-blanco.png";
       }),
       new Promise((resolve, reject) => {
         img.onload = resolve;
