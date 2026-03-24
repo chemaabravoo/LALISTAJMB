@@ -615,27 +615,31 @@
     .miniItem{
       background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:var(--shadow2);
       border-radius:16px;overflow:hidden;display:flex;gap:10px;cursor:pointer;transition:opacity .18s ease;
+      align-items:center;
     }
     .miniItem.done{opacity:.62;}
-    .miniItem.dragging{opacity:.5;transform:scale(1.02);}
-    .miniItem.reorderable{position:relative;padding-left:40px;}
-    .dragHandle{
-      position:absolute;left:8px;top:50%;transform:translateY(-50%);
-      font-size:18px;color:rgba(11,16,34,.25);cursor:grab;
-      padding:8px;user-select:none;touch-action:none;
-    }
-    .dragHandle:active{cursor:grabbing;}
     .categoryReorderItem{
       background:#fff;border:1px solid rgba(0,0,0,.08);
       box-shadow:var(--shadow2);border-radius:14px;
-      padding:14px 14px 14px 48px;position:relative;
-      cursor:grab;user-select:none;
+      padding:14px;position:relative;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
     }
-    .categoryReorderItem:active{cursor:grabbing;}
-    .categoryReorderItem.dragging{opacity:.5;transform:scale(1.02);}
-    .categoryName{font-size:14px;font-weight:800;color:var(--ink);}
+    .categoryName{font-size:14px;font-weight:800;color:var(--ink);flex:1;}
+    .arrowButtons{display:flex;gap:6px;flex:0 0 auto;}
+    .arrowBtn{
+      width:36px;height:36px;border-radius:10px;
+      border:1px solid rgba(0,0,0,.10);background:#fff;
+      color:var(--ink);font-size:18px;font-weight:900;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+    }
+    .arrowBtn:active{background:#f0f0f0;transform:scale(.95);}
+    .arrowBtn.disabled{opacity:.3;cursor:not-allowed;}
+    .arrowBtn.disabled:active{transform:none;background:#fff;}
+    .arrowBtn.delete{color:#b91c1c;border-color:rgba(185,28,28,.25);}
+    .arrowBtn.delete:active{background:#fff5f5;}
     .miniImg{width:72px;height:72px;background:center/cover no-repeat;flex:0 0 auto;}
     .miniText{padding:10px 10px 10px 0;min-width:0;flex:1;}
+    .miniItem .arrowButtons{margin-right:10px;}
     .miniText b{display:block;color:var(--ink);font-size:13px;line-height:1.2;}
     .miniText span{display:block;margin-top:6px;color:rgba(11,16,34,.55);font-weight:700;font-size:12px;}
     .tag{
@@ -1174,12 +1178,13 @@
           <div class="modal">
             <div class="modalHead"><strong>Ordenar categorías</strong><button class="close" id="categoryReorderClose">✕</button></div>
             <div class="modalBody">
-              <div class="smallNote">Mantén presionado y arrastra para reordenar las pestañas.</div>
-              <div id="categoryReorderList" style="display:grid;gap:10px;"></div>
+              <div class="smallNote">Usa las flechas para cambiar el orden. Toca ✕ para eliminar.</div>
+              <div id="categoryReorderList" style="display:grid;gap:10px;margin-bottom:12px;"></div>
+              <button class="btn" id="addCategoryBtn" style="width:100%;">+ Añadir categoría</button>
             </div>
             <div class="modalActions">
               <button class="ghost" id="categoryReorderCancel">Cancelar</button>
-              <button class="primary" id="categoryReorderSave">Guardar orden</button>
+              <button class="primary" id="categoryReorderSave">Guardar</button>
             </div>
           </div>
         </div>
@@ -1189,7 +1194,7 @@
           <div class="modal">
             <div class="modalHead"><strong>Ordenar objetivos</strong><button class="close" id="reorderClose">✕</button></div>
             <div class="modalBody">
-              <div class="smallNote">Mantén presionado y arrastra para reordenar.</div>
+              <div class="smallNote">Usa las flechas para cambiar el orden.</div>
               <div class="miniList" id="reorderList"></div>
             </div>
             <div class="modalActions">
@@ -1309,7 +1314,10 @@
         <div class="detailOverlay"></div>
         <div class="detailTopBtns">
           <button class="iconBtn" id="backBtn">←</button>
-          <button class="iconBtn" id="toggleDoneTop">♡</button>
+          <div style="display:flex;gap:8px;">
+            <button class="iconBtn" id="shareBtn" style="display:none;">📤</button>
+            <button class="iconBtn" id="toggleDoneTop">♡</button>
+          </div>
         </div>
         <div class="detailThumbs" id="detailThumbs"></div>
         <div class="detailTitleBlock">
@@ -1376,6 +1384,27 @@ function saveObjetivos(){
     if(e.name === "QuotaExceededError") {
       alert("⚠️ Demasiadas fotos guardadas. El navegador tiene un límite de almacenamiento. Borra algunos objetivos antiguos.");
     }
+  }
+}
+
+function loadCategories(){
+  try{
+    const key = currentUid ? BASE_KEY + currentUid + "_categories" : BASE_KEY + "anon_categories";
+    const raw = localStorage.getItem(key);
+    if(!raw) return ["Todos", "Viajes", "Experiencias", "Familia", "Trabajo", "Comunidad"];
+    const d = JSON.parse(raw);
+    return Array.isArray(d) ? d : ["Todos", "Viajes", "Experiencias", "Familia", "Trabajo", "Comunidad"];
+  }catch(e){ 
+    return ["Todos", "Viajes", "Experiencias", "Familia", "Trabajo", "Comunidad"]; 
+  }
+}
+
+function saveCategories(){
+  try{
+    const key = currentUid ? BASE_KEY + currentUid + "_categories" : BASE_KEY + "anon_categories";
+    localStorage.setItem(key, JSON.stringify(categoryOrder));
+  }catch(e){
+    console.error("Failed to save categories:", e);
   }
 }
 
@@ -1615,7 +1644,14 @@ function showAppScreen(user){
   screenAuth.classList.remove("active");
   screenApp.classList.add("active");
   screenDetail.classList.remove("active");
+  
+  // Reload user-specific categories
+  categoryOrder.length = 0;
+  categoryOrder.push(...loadCategories());
+  
   updateUserUI();
+  updateCategorySelects(); // Initialize category dropdowns
+  renderCategoryTabs(); // Render tabs with loaded categories
   renderHome("Todos");
   showView("home");
 }
@@ -2519,6 +2555,7 @@ function openDetail(id){
   $("#detailPrice").textContent = eur(o.coste);
   $("#detailDesc").textContent  = o.desc || "Añade una descripción en Ajustes.";
   $("#toggleDoneTop").textContent = o.done?"♥":"♡";
+  $("#shareBtn").style.display = o.done ? "" : "none"; // Show share button only when done
   const imgs = o.imgs||[];
   $("#detailThumbs").innerHTML = imgs.slice(0,4).map((src,i) =>
     '<div class="thumb '+(i===0?"":"dim")+'" data-idx="'+i+'" style="background-image:url(\''+src+'\')"></div>'
@@ -2598,12 +2635,184 @@ function toggleDone(){
   $("#detailSub").textContent = o.cat+" · "+(o.done?"Cumplido":"Pendiente")+place;
   $("#toggleDoneTop").textContent = o.done?"♥":"♡";
   $("#toggleDoneBtn").textContent = o.done?"✓":"›";
+  $("#shareBtn").style.display = o.done ? "" : "none"; // Toggle share button visibility
   refreshEverywhere();
 }
 
 $("#backBtn").addEventListener("click", closeDetail);
 $("#toggleDoneBtn").addEventListener("click", toggleDone);
 $("#toggleDoneTop").addEventListener("click", toggleDone);
+
+/* ================================================================
+   SHARE ACHIEVEMENT
+================================================================ */
+async function shareAchievement(){
+  const o = objetivos.find(x => x.id===selectedId);
+  if(!o || !o.done) return;
+  
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  
+  // Canvas size (Instagram story format)
+  canvas.width = 1080;
+  canvas.height = 1920;
+  
+  // Background gradient
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, "#0000FF");
+  gradient.addColorStop(1, "#000080");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Logo "La Lista" at top
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "bold 80px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("La Lista", canvas.width/2, 150);
+  
+  // Checkmark box and title
+  const boxY = 280;
+  const boxSize = 80;
+  const boxX = (canvas.width - 800) / 2;
+  
+  // Checkbox
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(boxX, boxY, boxSize, boxSize);
+  
+  // Checkmark
+  ctx.strokeStyle = "#0000FF";
+  ctx.lineWidth = 12;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(boxX + 20, boxY + 40);
+  ctx.lineTo(boxX + 35, boxY + 60);
+  ctx.lineTo(boxX + 60, boxY + 25);
+  ctx.stroke();
+  
+  // Title (strikethrough)
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "bold 60px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "left";
+  
+  const titleX = boxX + boxSize + 30;
+  const titleY = boxY + 55;
+  const maxWidth = 800 - boxSize - 30;
+  
+  // Wrap text if too long
+  const words = o.titulo.split(" ");
+  let line = "";
+  let lines = [];
+  
+  for(let word of words){
+    const testLine = line + word + " ";
+    const metrics = ctx.measureText(testLine);
+    if(metrics.width > maxWidth && line !== ""){
+      lines.push(line.trim());
+      line = word + " ";
+    } else {
+      line = testLine;
+    }
+  }
+  if(line) lines.push(line.trim());
+  
+  // Draw text lines
+  lines.forEach((l, i) => {
+    const y = titleY + (i * 70);
+    ctx.fillText(l, titleX, y);
+    
+    // Strikethrough
+    const textWidth = ctx.measureText(l).width;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(titleX, y - 15);
+    ctx.lineTo(titleX + textWidth, y - 15);
+    ctx.stroke();
+  });
+  
+  // Load and draw objective image
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  
+  return new Promise((resolve, reject) => {
+    img.onload = () => {
+      const imgY = boxY + (lines.length * 70) + 80;
+      const imgWidth = 900;
+      const imgHeight = 900;
+      const imgX = (canvas.width - imgWidth) / 2;
+      
+      // Draw image with rounded corners
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(imgX, imgY, imgWidth, imgHeight, 40);
+      ctx.clip();
+      
+      // Calculate aspect ratio
+      const scale = Math.max(imgWidth / img.width, imgHeight / img.height);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = imgX + (imgWidth - scaledWidth) / 2;
+      const offsetY = imgY + (imgHeight - scaledHeight) / 2;
+      
+      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      ctx.restore();
+      
+      // Convert to blob and share
+      canvas.toBlob(blob => {
+        if(!blob){
+          alert("Error al generar la imagen");
+          reject();
+          return;
+        }
+        
+        const file = new File([blob], "la-lista-objetivo-cumplido.png", { type: "image/png" });
+        
+        // Try native share API
+        if(navigator.share){
+          navigator.share({
+            files: [file],
+            title: "¡Objetivo cumplido! 🎉",
+            text: "He cumplido: " + o.titulo
+          }).then(() => {
+            console.log("Shared successfully");
+            resolve();
+          }).catch(err => {
+            console.log("Share cancelled or failed:", err);
+            downloadImage(blob);
+            resolve();
+          });
+        } else {
+          // Fallback: download
+          downloadImage(blob);
+          resolve();
+        }
+      }, "image/png");
+    };
+    
+    img.onerror = () => {
+      alert("Error al cargar la imagen del objetivo");
+      reject();
+    };
+    
+    // Load first image
+    img.src = firstImg(o);
+  });
+}
+
+function downloadImage(blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "la-lista-objetivo-cumplido.png";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+$("#shareBtn").addEventListener("click", shareAchievement);
+
 $("#detailHero").addEventListener("click", () => {
   const o = objetivos.find(x => x.id===selectedId);
   if(o) openLightbox(o.imgs||[], 0);
@@ -2959,15 +3168,33 @@ function closeReorderModal(){
 function renderReorderList(){
   const list = $("#reorderList");
   list.innerHTML = reorderTempList.map((o,i) =>
-    '<div class="miniItem reorderable" data-reorder-idx="'+i+'">'
-    +'<div class="dragHandle">☰</div>'
+    '<div class="miniItem" data-reorder-idx="'+i+'">'
     +'<div class="miniImg" style="background-image:url(\''+firstImg(o)+'\')"></div>'
     +'<div class="miniText"><b>'+escapeHTML(o.titulo)+'</b><span>'+escapeHTML(o.cat)+' · '+eur(o.coste)+'</span></div>'
+    +'<div class="arrowButtons">'
+    +(i > 0 ? '<button class="arrowBtn" data-dir="up">↑</button>' : '<button class="arrowBtn disabled">↑</button>')
+    +(i < reorderTempList.length-1 ? '<button class="arrowBtn" data-dir="down">↓</button>' : '<button class="arrowBtn disabled">↓</button>')
+    +'</div>'
     +'</div>'
   ).join("");
   
-  // Setup touch drag for mobile
-  setupTouchDrag(list);
+  // Arrow button handlers
+  list.addEventListener("click", e => {
+    const btn = e.target.closest(".arrowBtn");
+    if(!btn || btn.classList.contains("disabled")) return;
+    
+    const item = btn.closest(".miniItem");
+    const idx = Number(item.dataset.reorderIdx);
+    const dir = btn.dataset.dir;
+    
+    if(dir === "up" && idx > 0){
+      [reorderTempList[idx], reorderTempList[idx-1]] = [reorderTempList[idx-1], reorderTempList[idx]];
+      renderReorderList();
+    } else if(dir === "down" && idx < reorderTempList.length-1){
+      [reorderTempList[idx], reorderTempList[idx+1]] = [reorderTempList[idx+1], reorderTempList[idx]];
+      renderReorderList();
+    }
+  });
 }
 
 $("#reorderSave").addEventListener("click", () => {
@@ -2993,83 +3220,8 @@ $("#tabSettingsBtn").addEventListener("click", openCategoryReorder);
 /* ================================================================
    CATEGORY REORDER
 ================================================================ */
-const categoryOrder = ["Todos", "Viajes", "Experiencias", "Familia", "Trabajo", "Comunidad"];
+let categoryOrder = loadCategories();
 let tempCategoryOrder = [];
-
-// Universal touch drag handler for mobile
-function setupTouchDrag(container){
-  let draggedEl = null;
-  let placeholder = null;
-  let startY = 0;
-  let currentY = 0;
-
-  container.addEventListener("touchstart", e => {
-    const item = e.target.closest(".categoryReorderItem, .miniItem.reorderable");
-    if(!item || !e.target.closest(".dragHandle")) return;
-    
-    draggedEl = item;
-    startY = e.touches[0].clientY;
-    currentY = startY;
-    
-    placeholder = item.cloneNode(true);
-    placeholder.style.opacity = "0.3";
-    placeholder.style.pointerEvents = "none";
-    
-    draggedEl.classList.add("dragging");
-    draggedEl.style.position = "fixed";
-    draggedEl.style.zIndex = "1000";
-    draggedEl.style.width = item.offsetWidth + "px";
-    draggedEl.style.left = item.getBoundingClientRect().left + "px";
-    
-    item.parentNode.insertBefore(placeholder, item);
-  }, {passive: false});
-
-  container.addEventListener("touchmove", e => {
-    if(!draggedEl) return;
-    e.preventDefault();
-    
-    currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
-    draggedEl.style.top = (placeholder.getBoundingClientRect().top + deltaY) + "px";
-    
-    // Find element under touch
-    const elementsBelow = document.elementsFromPoint(e.touches[0].clientX, currentY);
-    const targetItem = elementsBelow.find(el => 
-      (el.classList.contains("categoryReorderItem") || el.classList.contains("miniItem")) 
-      && el !== draggedEl && el !== placeholder
-    );
-    
-    if(targetItem){
-      const rect = targetItem.getBoundingClientRect();
-      const midpoint = rect.top + rect.height / 2;
-      
-      if(currentY < midpoint){
-        targetItem.parentNode.insertBefore(placeholder, targetItem);
-      } else {
-        targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
-      }
-    }
-  }, {passive: false});
-
-  container.addEventListener("touchend", e => {
-    if(!draggedEl) return;
-    
-    draggedEl.style.position = "";
-    draggedEl.style.zIndex = "";
-    draggedEl.style.width = "";
-    draggedEl.style.left = "";
-    draggedEl.style.top = "";
-    draggedEl.classList.remove("dragging");
-    
-    if(placeholder && placeholder.parentNode){
-      placeholder.parentNode.insertBefore(draggedEl, placeholder);
-      placeholder.remove();
-    }
-    
-    draggedEl = null;
-    placeholder = null;
-  });
-}
 
 function openCategoryReorder(){
   tempCategoryOrder = [...categoryOrder];
@@ -3085,13 +3237,39 @@ function renderCategoryReorderList(){
   const list = $("#categoryReorderList");
   list.innerHTML = tempCategoryOrder.map((cat,i) =>
     '<div class="categoryReorderItem" data-cat-idx="'+i+'">'
-    +'<div class="dragHandle">☰</div>'
     +'<div class="categoryName">'+escapeHTML(cat)+'</div>'
+    +'<div class="arrowButtons">'
+    +(i > 0 ? '<button class="arrowBtn" data-dir="up">↑</button>' : '<button class="arrowBtn disabled">↑</button>')
+    +(i < tempCategoryOrder.length-1 ? '<button class="arrowBtn" data-dir="down">↓</button>' : '<button class="arrowBtn disabled">↓</button>')
+    +(cat !== "Todos" && cat !== "Comunidad" ? '<button class="arrowBtn delete" data-action="delete">✕</button>' : '')
+    +'</div>'
     +'</div>'
   ).join("");
   
-  // Touch drag handlers
-  setupTouchDrag(list);
+  // Arrow button handlers
+  list.addEventListener("click", e => {
+    const btn = e.target.closest(".arrowBtn");
+    if(!btn || btn.classList.contains("disabled")) return;
+    
+    const item = btn.closest(".categoryReorderItem");
+    const idx = Number(item.dataset.catIdx);
+    
+    if(btn.dataset.action === "delete"){
+      if(!confirm("¿Eliminar la categoría '"+tempCategoryOrder[idx]+"'?")) return;
+      tempCategoryOrder.splice(idx, 1);
+      renderCategoryReorderList();
+      return;
+    }
+    
+    const dir = btn.dataset.dir;
+    if(dir === "up" && idx > 0){
+      [tempCategoryOrder[idx], tempCategoryOrder[idx-1]] = [tempCategoryOrder[idx-1], tempCategoryOrder[idx]];
+      renderCategoryReorderList();
+    } else if(dir === "down" && idx < tempCategoryOrder.length-1){
+      [tempCategoryOrder[idx], tempCategoryOrder[idx+1]] = [tempCategoryOrder[idx+1], tempCategoryOrder[idx]];
+      renderCategoryReorderList();
+    }
+  });
 }
 
 $("#categoryReorderSave").addEventListener("click", () => {
@@ -3099,6 +3277,7 @@ $("#categoryReorderSave").addEventListener("click", () => {
   const newOrder = items.map(item => tempCategoryOrder[Number(item.dataset.catIdx)]);
   categoryOrder.length = 0;
   categoryOrder.push(...newOrder);
+  saveCategories(); // Persist to localStorage
   renderCategoryTabs();
   closeCategoryReorder();
 });
@@ -3107,6 +3286,24 @@ $("#categoryReorderCancel").addEventListener("click", closeCategoryReorder);
 $("#categoryReorderClose").addEventListener("click", closeCategoryReorder);
 $("#categoryReorderBack").addEventListener("click", e => {
   if(e.target === $("#categoryReorderBack")) closeCategoryReorder();
+});
+
+$("#addCategoryBtn").addEventListener("click", () => {
+  const name = prompt("Nombre de la nueva categoría:");
+  if(!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if(tempCategoryOrder.includes(trimmed)){
+    alert("Ya existe una categoría con ese nombre.");
+    return;
+  }
+  // Add before Comunidad (always last)
+  const comunidadIdx = tempCategoryOrder.indexOf("Comunidad");
+  if(comunidadIdx !== -1){
+    tempCategoryOrder.splice(comunidadIdx, 0, trimmed);
+  } else {
+    tempCategoryOrder.push(trimmed);
+  }
+  renderCategoryReorderList();
 });
 
 function renderCategoryTabs(){
@@ -3125,6 +3322,29 @@ function renderCategoryTabs(){
   
   // Re-attach settings button
   $("#tabSettingsBtn").addEventListener("click", openCategoryReorder);
+  
+  // Update category selects in forms
+  updateCategorySelects();
+}
+
+function updateCategorySelects(){
+  const userCategories = categoryOrder.filter(c => c !== "Todos" && c !== "Comunidad");
+  const options = userCategories.map(c => '<option>'+escapeHTML(c)+'</option>').join("");
+  
+  const fCat = $("#fCat");
+  const wCat = $("#wCat");
+  
+  if(fCat){
+    const current = fCat.value;
+    fCat.innerHTML = options;
+    if(userCategories.includes(current)) fCat.value = current;
+  }
+  
+  if(wCat){
+    const current = wCat.value;
+    wCat.innerHTML = options;
+    if(userCategories.includes(current)) wCat.value = current;
+  }
 }
 
 </script>
