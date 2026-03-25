@@ -185,6 +185,18 @@
     window._fsDeleteObjective = async (uid, id) => {
       try{ await deleteDoc(doc(db,"objectives",uid,"items",String(id))); }catch(e){}
     };
+    
+    window._fsLoadMyObjectives = async (uid) => {
+      try {
+        const snap = await getDocs(collection(db,"objectives",uid,"items"));
+        const objs = [];
+        snap.forEach(doc => objs.push({...doc.data(), id: Number(doc.id)}));
+        return objs;
+      } catch(e) {
+        console.error("Error loading objectives:", e);
+        return [];
+      }
+    };
 
     // Test Firebase Auth is reachable
     auth.authStateReady().then(() => {
@@ -1716,7 +1728,7 @@ function showAuthScreen(){
   closeAuthModal();
 }
 
-function showAppScreen(user){
+async function showAppScreen(user){
   closeAuthModal();
   screenAuth.classList.remove("active");
   screenApp.classList.add("active");
@@ -1726,9 +1738,40 @@ function showAppScreen(user){
   categoryOrder.length = 0;
   categoryOrder.push(...loadCategories());
   
+  // Load objectives from Firestore and merge with localStorage
+  if(currentUid && window._fsLoadMyObjectives) {
+    try {
+      const firestoreObjs = await window._fsLoadMyObjectives(currentUid);
+      const localObjs = loadObjetivos();
+      
+      // Merge: prefer Firestore for public objectives, keep local private ones
+      const merged = new Map();
+      
+      // Add local objectives
+      localObjs.forEach(o => merged.set(o.id, o));
+      
+      // Override with Firestore objectives (they have Storage URLs)
+      firestoreObjs.forEach(o => {
+        const existing = merged.get(o.id);
+        if(!existing || o.imgs?.length > 0) {
+          // Use Firestore version if it has images (Storage URLs)
+          merged.set(o.id, o);
+        }
+      });
+      
+      objetivos.length = 0;
+      objetivos.push(...Array.from(merged.values()));
+      saveObjetivos(); // Save merged version to localStorage
+      
+      console.log("✅ Loaded", firestoreObjs.length, "objectives from Firestore,", localObjs.length, "from localStorage →", objetivos.length, "total");
+    } catch(e) {
+      console.error("Error merging objectives:", e);
+    }
+  }
+  
   updateUserUI();
-  updateCategorySelects(); // Initialize category dropdowns
-  renderCategoryTabs(); // Render tabs with loaded categories
+  updateCategorySelects();
+  renderCategoryTabs();
   renderHome("Todos");
   showView("home");
 }
@@ -3072,20 +3115,29 @@ function filesToDataUrls(files){
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Compress iteratively to get under 500KB
-        let quality = 0.9;
-        let compressed = canvas.toDataURL('image/jpeg', quality);
+        // Compress iteratively to get under 500KB using Blob
         const targetSize = 500 * 1024; // 500KB in bytes
+        let quality = 0.9;
         
-        // Base64 to bytes: (length * 3/4) - padding
-        while((compressed.length * 0.75) > targetSize && quality > 0.1) {
-          quality -= 0.1;
-          compressed = canvas.toDataURL('image/jpeg', quality);
-        }
+        const tryCompress = () => {
+          canvas.toBlob(blob => {
+            if(blob.size <= targetSize || quality <= 0.1) {
+              // Convert blob to base64
+              const reader = new FileReader();
+              reader.onload = () => {
+                const finalSizeKB = (blob.size / 1024).toFixed(0);
+                console.log("DEBUG Image compressed - Original:", (r.result.length/1024).toFixed(0), "KB → Final:", finalSizeKB, "KB (quality:", quality.toFixed(1), ")");
+                res(reader.result);
+              };
+              reader.readAsDataURL(blob);
+            } else {
+              quality -= 0.1;
+              tryCompress();
+            }
+          }, 'image/jpeg', quality);
+        };
         
-        const finalSizeKB = ((compressed.length * 0.75) / 1024).toFixed(0);
-        console.log("DEBUG Image compressed - Original:", (r.result.length/1024).toFixed(0), "KB → Final:", finalSizeKB, "KB (quality:", quality.toFixed(1), ")");
-        res(compressed);
+        tryCompress();
       };
       img.onerror = rej;
       img.src = r.result;
