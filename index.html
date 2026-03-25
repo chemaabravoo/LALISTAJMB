@@ -39,6 +39,9 @@
       getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
       collection, getDocs, query, where, arrayUnion, arrayRemove
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getStorage, ref, uploadString, getDownloadURL, deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBBS_h2F_gm8pYo4w3iM4Ac-ibr9DfcwLU",
@@ -53,6 +56,7 @@
     const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app, "lalista-ed7d4");
+    const storage = getStorage(app);
     const googleProvider = new GoogleAuthProvider();
 
     window._fbAuth        = auth;
@@ -65,6 +69,19 @@
     window._fbOnAuthStateChanged = (cb) => onAuthStateChanged(auth, cb);
 
     window._db = db;
+    window._storage = storage;
+    
+    // Storage helpers
+    window._uploadImage = async (path, base64Data) => {
+      const storageRef = ref(storage, path);
+      await uploadString(storageRef, base64Data, 'data_url');
+      return await getDownloadURL(storageRef);
+    };
+    
+    window._deleteImage = async (path) => {
+      const storageRef = ref(storage, path);
+      await deleteObject(storageRef);
+    };
 
     window._fsGetUser = async (uid) => {
       const snap = await getDoc(doc(db,"users",uid));
@@ -857,7 +874,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="La Lista">
-  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="apple-touch-icon" href="icon.png">
   
   <!-- Android/Chrome -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -1405,6 +1422,31 @@ function loadObjetivos(){
     return Array.isArray(d) ? d : [];
   }catch(e){ return []; }
 }
+async function uploadImagesToStorage(imgs, objId) {
+  if(!currentUid || !window._uploadImage) return imgs;
+  
+  const uploadedUrls = [];
+  for(let i = 0; i < imgs.length; i++) {
+    const img = imgs[i];
+    if(img.startsWith('data:')) {
+      // Upload to Storage
+      try {
+        const path = `users/${currentUid}/objectives/${objId}/img_${i}_${Date.now()}.jpg`;
+        const url = await window._uploadImage(path, img);
+        uploadedUrls.push(url);
+        console.log(`✅ Image ${i+1}/${imgs.length} uploaded to Storage`);
+      } catch(e) {
+        console.error('Error uploading image:', e);
+        uploadedUrls.push(img); // Fallback to base64 if upload fails
+      }
+    } else {
+      // Already a URL
+      uploadedUrls.push(img);
+    }
+  }
+  return uploadedUrls;
+}
+
 function saveObjetivos(){ 
   try {
     const data = JSON.stringify(objetivos);
@@ -3006,7 +3048,7 @@ function filesToDataUrls(files){
   return Promise.all(Array.from(files).map(f => new Promise((res,rej) => {
     const r=new FileReader(); 
     r.onload=()=>{
-      // Compress image before saving
+      // Compress image to max 500KB
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -3030,9 +3072,19 @@ function filesToDataUrls(files){
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to JPEG with 0.7 quality (good balance between size and quality)
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        console.log("DEBUG Image compressed - Original:", (r.result.length/1024).toFixed(0), "KB → Compressed:", (compressed.length/1024).toFixed(0), "KB");
+        // Compress iteratively to get under 500KB
+        let quality = 0.9;
+        let compressed = canvas.toDataURL('image/jpeg', quality);
+        const targetSize = 500 * 1024; // 500KB in bytes
+        
+        // Base64 to bytes: (length * 3/4) - padding
+        while((compressed.length * 0.75) > targetSize && quality > 0.1) {
+          quality -= 0.1;
+          compressed = canvas.toDataURL('image/jpeg', quality);
+        }
+        
+        const finalSizeKB = ((compressed.length * 0.75) / 1024).toFixed(0);
+        console.log("DEBUG Image compressed - Original:", (r.result.length/1024).toFixed(0), "KB → Final:", finalSizeKB, "KB (quality:", quality.toFixed(1), ")");
         res(compressed);
       };
       img.onerror = rej;
@@ -3050,7 +3102,7 @@ $("#localFiles").addEventListener("change", async () => {
   finally{ $("#localFiles").value=""; }
 });
 
-$("#btnSave").addEventListener("click", () => {
+$("#btnSave").addEventListener("click", async () => {
   const titulo   = $("#fTitle").value.trim();
   const cat      = $("#fCat").value;
   const coste    = Number($("#fCost").value||0);
@@ -3078,6 +3130,10 @@ $("#btnSave").addEventListener("click", () => {
   if(pendingLocalImgs.length>1) finalImgs.push(...pendingLocalImgs.slice(1));
   finalImgs = [...new Set(finalImgs)].filter(Boolean);
   if(!finalImgs.length){ alert("Añada al menos una imagen."); return; }
+
+  // Upload base64 images to Storage
+  const objId = editingId ?? (objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1);
+  finalImgs = await uploadImagesToStorage(finalImgs, objId);
 
   if(editingId==null){
     const nextId = objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1;
@@ -3185,7 +3241,7 @@ $("#wLocalFiles").addEventListener("change", async () => {
 });
 
 $("#wPrev").addEventListener("click", () => setWizardStep(wStep-1));
-$("#wNext").addEventListener("click", () => {
+$("#wNext").addEventListener("click", async () => {
   const stepsCount = wizardStepEls().length;
   if(wStep===0){
     if(!$("#wTitle").value.trim()){ alert("Ponga un título 🙂"); return; }
@@ -3219,6 +3275,10 @@ $("#wNext").addEventListener("click", () => {
 
   const nextId = objetivos.reduce((m,o) => Math.max(m,Number(o.id)||0),0)+1;
   const isPublic = !!$("#wPublic").checked;
+  
+  // Upload images to Storage
+  imgs = await uploadImagesToStorage(imgs, nextId);
+  
   const newObj = {id:nextId,titulo,cat,coste,done:false,desc,imgs,place,lat,lng,isPublic};
   console.log("DEBUG Wizard - Created objective:", newObj.titulo, "with", newObj.imgs.length, "images");
   objetivos.unshift(newObj);
