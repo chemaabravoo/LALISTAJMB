@@ -3,9 +3,9 @@ const urlsToCache = [
   './',
   './index.html',
   './logo.png',
-  './logo-blanco.png'
+  './logo blanco.png'
 ];
-
+ 
 // Install event - cache resources
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -20,14 +20,14 @@ self.addEventListener('install', event => {
   );
   self.skipWaiting();
 });
-
+ 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', event => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
-
+ 
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -35,30 +35,30 @@ self.addEventListener('fetch', event => {
         if (response) {
           return response;
         }
-
+ 
         // Clone the request
         const fetchRequest = event.request.clone();
-
+ 
         return fetch(fetchRequest).then(response => {
           // Check if valid response
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-
+ 
           // Clone the response
           const responseToCache = response.clone();
-
+ 
           caches.open(CACHE_NAME)
             .then(cache => {
               cache.put(event.request, responseToCache);
             });
-
+ 
           return response;
         });
       })
   );
 });
-
+ 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
