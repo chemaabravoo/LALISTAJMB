@@ -1986,9 +1986,9 @@ function switchAuthTab(tab){
   $("#formRegister").classList.toggle("active", !isLogin);
 }
 
-// Wait for DOM to be fully loaded before adding event listeners
-window.addEventListener('DOMContentLoaded', () => {
-  console.log("✅ DOMContentLoaded - Adding event listeners");
+// Execute immediately - DOM is already loaded when this script runs
+(function() {
+  console.log("✅ Initializing event listeners");
   
   // Auth modal
   const openLoginBtn = $("#openLoginBtn");
@@ -2001,65 +2001,97 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  $("#openRegisterBtn").addEventListener("click", () => openAuthModal("register"));
-  $("#authModalClose").addEventListener("click", closeAuthModal);
-  $("#authModalBack").addEventListener("click", e => { if(e.target === $("#authModalBack")) closeAuthModal(); });
+  const openRegisterBtn = $("#openRegisterBtn");
+  if(openRegisterBtn) {
+    openRegisterBtn.addEventListener("click", () => openAuthModal("register"));
+  }
+  
+  const authModalClose = $("#authModalClose");
+  if(authModalClose) {
+    authModalClose.addEventListener("click", closeAuthModal);
+  }
+  
+  const authModalBack = $("#authModalBack");
+  if(authModalBack) {
+    authModalBack.addEventListener("click", e => { if(e.target === authModalBack) closeAuthModal(); });
+  }
   
   // Login/Register forms
-  $("#loginBtn").addEventListener("click", async () => {
-    const e = $("#loginEmail").value.trim();
-    const p = $("#loginPass").value;
-    const errEl = $("#loginError");
-    clearAuthError(errEl);
-    if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
-    setAuthLoading(true);
-    try{
-      await window._fbSignInEmail(e,p);
-    }catch(err){
-      console.error("Login error:", err.code, err.message);
-      showAuthError(errEl, friendlyError(err.code));
-    }
-    finally{ setAuthLoading(false); }
-  });
+  const loginBtn = $("#loginBtn");
+  if(loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+      const e = $("#loginEmail").value.trim();
+      const p = $("#loginPass").value;
+      const errEl = $("#loginError");
+      clearAuthError(errEl);
+      if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
+      setAuthLoading(true);
+      try{
+        await window._fbSignInEmail(e,p);
+      }catch(err){
+        console.error("Login error:", err.code, err.message);
+        showAuthError(errEl, friendlyError(err.code));
+      }
+      finally{ setAuthLoading(false); }
+    });
+  }
   
-  $("#registerBtn").addEventListener("click", async () => {
-    const name  = $("#registerName").value.trim();
-    const e     = $("#registerEmail").value.trim();
-    const p     = $("#registerPass").value;
-    const accept = $("#acceptPrivacy").checked;
-    const errEl = $("#registerError");
-    const okEl  = $("#registerSuccess");
-    clearAuthError(errEl);
-    if(!accept){ showAuthError(errEl,"Debes aceptar la política de privacidad."); return; }
-    if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
-    setAuthLoading(true);
-    try{
-      const cred = await window._fbRegister(e,p);
-      if(name) await window._fbUpdateProfile({ displayName: name });
-      okEl.textContent="¡Cuenta creada! Iniciando sesión…"; okEl.classList.add("show");
-    }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
-    finally{ setAuthLoading(false); }
-  });
+  const registerBtn = $("#registerBtn");
+  if(registerBtn) {
+    registerBtn.addEventListener("click", async () => {
+      const name  = $("#registerName").value.trim();
+      const e     = $("#registerEmail").value.trim();
+      const p     = $("#registerPass").value;
+      const accept = $("#acceptPrivacy").checked;
+      const errEl = $("#registerError");
+      const okEl  = $("#registerSuccess");
+      clearAuthError(errEl);
+      if(!accept){ showAuthError(errEl,"Debes aceptar la política de privacidad."); return; }
+      if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
+      setAuthLoading(true);
+      try{
+        const cred = await window._fbRegister(e,p);
+        if(name) await window._fbUpdateProfile({ displayName: name });
+        okEl.textContent="¡Cuenta creada! Iniciando sesión…"; okEl.classList.add("show");
+      }catch(err){ showAuthError(errEl, friendlyError(err.code)); }
+      finally{ setAuthLoading(false); }
+    });
+  }
   
   // Tabs
-  $("#tabLogin").addEventListener("click", () => switchAuthTab("login"));
-  $("#tabRegister").addEventListener("click", () => switchAuthTab("register"));
+  const tabLogin = $("#tabLogin");
+  const tabRegister = $("#tabRegister");
+  if(tabLogin) tabLogin.addEventListener("click", () => switchAuthTab("login"));
+  if(tabRegister) tabRegister.addEventListener("click", () => switchAuthTab("register"));
   
   // Privacy modal
-  $("#privacyLink").addEventListener("click", (e) => {
-    e.preventDefault();
-    $("#privacyModal").classList.add("show");
-  });
-  $("#privacyClose").addEventListener("click", () => $("#privacyModal").classList.remove("show"));
-  $("#privacyClose2").addEventListener("click", () => $("#privacyModal").classList.remove("show"));
-  $("#privacyModal").addEventListener("click", (e) => {
-    if(e.target === $("#privacyModal")) $("#privacyModal").classList.remove("show");
-  });
+  const privacyLink = $("#privacyLink");
+  const privacyClose = $("#privacyClose");
+  const privacyClose2 = $("#privacyClose2");
+  const privacyModal = $("#privacyModal");
+  
+  if(privacyLink) {
+    privacyLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      if(privacyModal) privacyModal.classList.add("show");
+    });
+  }
+  if(privacyClose) privacyClose.addEventListener("click", () => { if(privacyModal) privacyModal.classList.remove("show"); });
+  if(privacyClose2) privacyClose2.addEventListener("click", () => { if(privacyModal) privacyModal.classList.remove("show"); });
+  if(privacyModal) {
+    privacyModal.addEventListener("click", (e) => {
+      if(e.target === privacyModal) privacyModal.classList.remove("show");
+    });
+  }
   
   // Google login
-  $("#loginGoogleBtn").addEventListener("click", handleGoogleLogin);
-  $("#registerGoogleBtn").addEventListener("click", handleGoogleLogin);
-});
+  const loginGoogleBtn = $("#loginGoogleBtn");
+  const registerGoogleBtn = $("#registerGoogleBtn");
+  if(loginGoogleBtn) loginGoogleBtn.addEventListener("click", handleGoogleLogin);
+  if(registerGoogleBtn) registerGoogleBtn.addEventListener("click", handleGoogleLogin);
+  
+  console.log("✅ All event listeners added");
+})();
 
 function showAuthScreen(){
   screenAuth.classList.add("active");
