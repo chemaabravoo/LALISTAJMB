@@ -332,7 +332,9 @@
     window.setLanguage = (lang) => {
       currentLang = lang;
       localStorage.setItem("lalista_lang", lang);
-      location.reload(); // Reload to apply translations
+      // Apply translations before reload
+      window.applyTranslations();
+      setTimeout(() => location.reload(), 100); // Small delay for translations to apply
     };
     
     // Apply translations on load
@@ -355,7 +357,7 @@
     };
     
     // Auto-apply on DOM ready
-    setTimeout(() => window.applyTranslations(), 50);
+    // setTimeout(() => window.applyTranslations(), 50);
 
     window.dispatchEvent(new Event("firebaseReady"));
   </script>
