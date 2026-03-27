@@ -116,6 +116,10 @@
       }
     };
 
+    window._fsDeleteUser = async (uid) => {
+      try{ await deleteDoc(doc(db,"users",uid)); }catch(e){ console.error("Error deleting user:", e); }
+    };
+
     // Avatar stored in localStorage only (too large for Firestore)
     window._fsGetAvatarLocal = (uid) => {
       try{ return localStorage.getItem("lalista_avatar_"+uid)||""; }catch(e){ return ""; }
@@ -205,6 +209,154 @@
       console.error("Firebase Auth not ready:", err);
     });
 
+    // Translation system
+    const translations = {
+      es: {
+        // Auth
+        "welcome_title": "Tus objetivos.<br>Tu historia.",
+        "welcome_subtitle": "Hola. Bienvenido a <b>La Lista</b>.<br>Aquí guardas lo que quieres hacer, vivir y cumplir,<br>para no perder el foco en lo que de verdad importa.<br>No es una app más. Es un recordatorio.",
+        "Crear una cuenta": "Crear una cuenta",
+        "Entrar": "Entrar",
+        "Entrar →": "Entrar →",
+        "¿Olvidaste tu contraseña?": "¿Olvidaste tu contraseña?",
+        "Continuar con Google": "Continuar con Google",
+        "Registrarse": "Registrarse",
+        "Iniciar sesión": "Iniciar sesión",
+        "Correo electrónico": "Correo electrónico",
+        "Contraseña": "Contraseña",
+        "Contraseña (mín. 6 caracteres)": "Contraseña (mín. 6 caracteres)",
+        "Nombre": "Nombre",
+        "Acepto la": "Acepto la",
+        "política de privacidad": "política de privacidad",
+        "Crear cuenta →": "Crear cuenta →",
+        
+        // App
+        "Mis objetivos": "Mis objetivos",
+        "Todos": "Todos",
+        "Comunidad": "Comunidad",
+        "Añadir objetivo": "Añadir objetivo",
+        "Nuevo objetivo": "Nuevo objetivo",
+        "Paso 1 · Título": "Paso 1 · Título",
+        "Título": "Título",
+        "Siguiente": "Siguiente",
+        "Atrás": "Atrás",
+        "Crear": "Crear",
+        "Guardar": "Guardar",
+        "Cancelar": "Cancelar",
+        "Eliminar": "Eliminar",
+        "Cerrar": "Cerrar",
+        "Cerrar sesión": "Cerrar sesión",
+        "Eliminar cuenta": "Eliminar cuenta",
+        "Cumplido": "Cumplido",
+        "Cumplidos": "Cumplidos",
+        "Pendiente": "Pendiente",
+        "No hay objetivos aquí todavía.": "No hay objetivos aquí todavía.",
+        
+        // Profile
+        "Seguidores": "Seguidores",
+        "Siguiendo": "Siguiendo",
+        "Objetivos": "Objetivos",
+        "Seguir": "Seguir",
+        "Dejar de seguir": "Dejar de seguir",
+        "Editar perfil": "Editar perfil",
+        "Nombre de usuario": "Nombre de usuario",
+        "Biografía": "Biografía",
+        
+        // Settings
+        "Política de Privacidad": "Política de Privacidad",
+        "Idioma / Language": "Idioma / Language"
+      },
+      en: {
+        // Auth
+        "welcome_title": "Your goals.<br>Your story.",
+        "welcome_subtitle": "Hello. Welcome to <b>La Lista</b>.<br>Here you save what you want to do, live and achieve,<br>to stay focused on what really matters.<br>It's not just another app. It's a reminder.",
+        "Crear una cuenta": "Create an account",
+        "Entrar": "Sign in",
+        "Entrar →": "Sign in →",
+        "¿Olvidaste tu contraseña?": "Forgot your password?",
+        "Continuar con Google": "Continue with Google",
+        "Registrarse": "Sign up",
+        "Iniciar sesión": "Sign in",
+        "Correo electrónico": "Email",
+        "Contraseña": "Password",
+        "Contraseña (mín. 6 caracteres)": "Password (min. 6 characters)",
+        "Nombre": "Name",
+        "Acepto la": "I accept the",
+        "política de privacidad": "privacy policy",
+        "Crear cuenta →": "Create account →",
+        
+        // App
+        "Mis objetivos": "My goals",
+        "Todos": "All",
+        "Comunidad": "Community",
+        "Añadir objetivo": "Add goal",
+        "Nuevo objetivo": "New goal",
+        "Paso 1 · Título": "Step 1 · Title",
+        "Título": "Title",
+        "Siguiente": "Next",
+        "Atrás": "Back",
+        "Crear": "Create",
+        "Guardar": "Save",
+        "Cancelar": "Cancel",
+        "Eliminar": "Delete",
+        "Cerrar": "Close",
+        "Cerrar sesión": "Sign out",
+        "Eliminar cuenta": "Delete account",
+        "Cumplido": "Completed",
+        "Cumplidos": "Completed",
+        "Pendiente": "Pending",
+        "No hay objetivos aquí todavía.": "No goals here yet.",
+        
+        // Profile
+        "Seguidores": "Followers",
+        "Siguiendo": "Following",
+        "Objetivos": "Goals",
+        "Seguir": "Follow",
+        "Dejar de seguir": "Unfollow",
+        "Editar perfil": "Edit profile",
+        "Nombre de usuario": "Username",
+        "Biografía": "Bio",
+        
+        // Settings
+        "Política de Privacidad": "Privacy Policy",
+        "Idioma / Language": "Language"
+      }
+    };
+    
+    let currentLang = localStorage.getItem("lalista_lang") || "es";
+    
+    window.t = (key) => {
+      return translations[currentLang]?.[key] || key;
+    };
+    
+    window.setLanguage = (lang) => {
+      currentLang = lang;
+      localStorage.setItem("lalista_lang", lang);
+      location.reload(); // Reload to apply translations
+    };
+    
+    // Apply translations on load
+    window.applyTranslations = () => {
+      // Auth screen
+      const obTitle = document.querySelector(".obTitle");
+      const obSubtitle = document.querySelector(".obSubtitle");
+      if(obTitle) obTitle.innerHTML = window.t("welcome_title");
+      if(obSubtitle) obSubtitle.innerHTML = window.t("welcome_subtitle");
+      
+      // Buttons - use data-i18n attribute
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if(el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+          if(el.placeholder) el.placeholder = window.t(key);
+        } else {
+          el.textContent = window.t(key);
+        }
+      });
+    };
+    
+    // Auto-apply on DOM ready
+    setTimeout(() => window.applyTranslations(), 50);
+
     window.dispatchEvent(new Event("firebaseReady"));
   </script>
 
@@ -213,6 +365,7 @@
       --text:#f3f4f6;
       --muted:rgba(243,244,246,.72);
       --card:#ffffff;
+      --bg:#ffffff;
       --ink:#0b1022;
       --inkMuted:rgba(11,16,34,.55);
       --pill:rgba(0,0,0,.06);
@@ -225,13 +378,29 @@
       --shadow2:0 14px 34px rgba(0,0,0,.12);
       --red:#ef4444;
     }
+    
+    body.dark-mode {
+      --text:#1a1a1a;
+      --muted:rgba(26,26,26,.72);
+      --card:#1a1a1a;
+      --bg:#0a0a0a;
+      --ink:#f3f4f6;
+      --inkMuted:rgba(243,244,246,.65);
+      --pill:rgba(255,255,255,.08);
+      --pillActive:rgba(255,255,255,.16);
+      --navBg:#1a1a1a;
+      --stroke:rgba(255,255,255,.10);
+      --shadow:0 18px 60px rgba(0,0,0,.60);
+      --shadow2:0 14px 34px rgba(0,0,0,.40);
+    }
 
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto;
-      background:#000;
+      background:var(--bg);
       color:var(--text);
+      transition:background 0.3s, color 0.3s;
     }
 
     .frame{
@@ -380,7 +549,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* =============== APP SHELL =============== */
-    .app{height:100%;background:#000;display:flex;}
+    .app{height:100%;background:var(--bg);display:flex;}
     .appShell{
       flex:1;margin:14px;background:#f6f7fb;border-radius:22px;
       overflow:hidden;display:flex;flex-direction:column;
@@ -435,12 +604,55 @@
       box-shadow:0 2px 8px rgba(0,0,0,.06);
     }
     .viewToggleBtn:active{transform:translateY(1px)}
-    .listView{
+    .gridView{
       height:100%;overflow-y:auto;padding:6px 16px 92px;
+      -webkit-overflow-scrolling:touch;display:none;
+    }
+    .gridView.active{display:block;}
+    .listView{
+      height:100%;overflow-y:auto;padding:16px 16px 92px;
       -webkit-overflow-scrolling:touch;display:none;
     }
     .listView.active{display:block;}
     .carousel.hidden{display:none;}
+    
+    /* Grid view - card style */
+    .gridObjCard{
+      background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;gap:0;overflow:hidden;
+      cursor:pointer;margin-bottom:12px;transition:opacity .18s;
+    }
+    
+    /* List view - numbered list style */
+    .listObjItem{
+      padding:12px 0;
+      border-bottom:1px solid rgba(0,0,0,.08);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      transition:opacity .18s;
+    }
+    .listObjItem:hover{opacity:0.7;}
+    .listObjNumber{
+      font-size:18px;
+      font-weight:600;
+      color:var(--ink);
+      min-width:40px;
+    }
+    .listObjContent{
+      flex:1;
+    }
+    .listObjTitle{
+      font-size:15px;
+      font-weight:500;
+      color:var(--ink);
+    }
+    .listObjTitle.done{
+      text-decoration:line-through;
+      color:rgba(0,0,0,0.4);
+    }
+    
     .listObjCard{
       background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,.06);
       box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;gap:0;overflow:hidden;
@@ -939,8 +1151,8 @@
         </div>
       </div>
       <div class="obButtons">
-        <button class="btnEntrar" id="openLoginBtn">Entrar →</button>
-        <button class="btnRegistrar" id="openRegisterBtn">Crear una cuenta</button>
+        <button class="btnEntrar" id="openLoginBtn" data-i18n="Entrar →">Entrar →</button>
+        <button class="btnRegistrar" id="openRegisterBtn" data-i18n="Crear una cuenta">Crear una cuenta</button>
       </div>
     </section>
 
@@ -950,8 +1162,8 @@
         <button class="authModalClose" id="authModalClose">✕</button>
         <div class="authSpinner" id="authSpinner"><div class="spinner"></div></div>
         <div class="authTabs">
-          <button class="authTab active" id="tabLogin">Entrar</button>
-          <button class="authTab" id="tabRegister">Registrarse</button>
+          <button class="authTab active" id="tabLogin" data-i18n="Entrar">Entrar</button>
+          <button class="authTab" id="tabRegister" data-i18n="Registrarse">Registrarse</button>
         </div>
 
         <!-- FORM LOGIN -->
@@ -990,6 +1202,10 @@
             <label>Contraseña (mín. 6 caracteres)</label>
             <input id="registerPass" type="password" placeholder="••••••••" autocomplete="new-password" />
           </div>
+          <div class="authField" style="flex-direction:row;align-items:center;gap:8px;">
+            <input id="acceptPrivacy" type="checkbox" style="width:auto;margin:0;" />
+            <label for="acceptPrivacy" style="margin:0;font-size:13px;">Acepto la <a href="#" id="privacyLink" style="color:#0000FF;text-decoration:underline;">política de privacidad</a></label>
+          </div>
           <button class="btnPrimary" id="registerBtn">Crear cuenta →</button>
           <div class="authDivider"><span>o continúa con</span></div>
           <button class="btnGoogle" id="registerGoogleBtn">
@@ -1007,8 +1223,9 @@
       <div class="appShell">
 
         <div class="topbar">
-          <h1 id="pageTitle">Mis objetivos</h1>
+          <h1 id="pageTitle" data-i18n="Mis objetivos">Mis objetivos</h1>
           <div style="display:flex;gap:8px;">
+            <button class="gear" id="darkModeBtn">🌙</button>
             <button class="gear" id="searchBtn">🔍</button>
             <button class="gear" id="gearBtn">⚙️</button>
           </div>
@@ -1032,6 +1249,7 @@
 
         <div class="content" id="view-home">
           <div class="carousel" id="carousel"></div>
+          <div class="gridView" id="gridViewContainer"></div>
           <div class="listView" id="listViewContainer"></div>
           <div class="communityFeed" id="communityFeed" style="display:none;"></div>
         </div>
@@ -1076,9 +1294,15 @@
             </div>
             <div class="sectionTitle">Pendientes</div>
             <div class="list" id="listPend"></div>
-            <div class="sectionTitle" style="margin-top:14px;">Cumplidos</div>
+            <div class="sectionTitle" style="margin-top:14px;" data-i18n="Idioma / Language">Idioma / Language</div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+              <button class="btnSignOut" id="langES" style="flex:1;background:#0000FF;color:#fff;">🇪🇸 Español</button>
+              <button class="btnSignOut" id="langEN" style="flex:1;">🇬🇧 English</button>
+            </div>
+            <div class="sectionTitle" style="margin-top:14px;" data-i18n="Cumplidos">Cumplidos</div>
             <div class="list" id="listDone"></div>
-            <button class="btnSignOut" id="signOutBtn">Cerrar sesión</button>
+            <button class="btnSignOut" id="signOutBtn" data-i18n="Cerrar sesión">Cerrar sesión</button>
+            <button class="btnSignOut" id="deleteAccountBtn" style="margin-top:8px;background:#ff0000;color:#fff;" data-i18n="Eliminar cuenta">Eliminar cuenta</button>
           </div>
         </div>
 
@@ -1355,12 +1579,56 @@
           </div>
         </div>
 
+        <!-- PRIVACY POLICY MODAL -->
+        <div class="modalBack" id="privacyModal">
+          <div class="modal">
+            <div class="modalHead"><strong>Política de Privacidad</strong><button class="close" id="privacyClose">✕</button></div>
+            <div class="modalBody">
+              <h3>La Lista - Política de Privacidad</h3>
+              <p><strong>Última actualización:</strong> Marzo 2026</p>
+              
+              <h4>1. Información que recopilamos</h4>
+              <p>Recopilamos la siguiente información cuando te registras:</p>
+              <ul>
+                <li>Nombre y correo electrónico</li>
+                <li>Fotografías que subas (objetivos y avatar)</li>
+                <li>Contenido que crees (objetivos, descripciones, tareas)</li>
+              </ul>
+              
+              <h4>2. Cómo usamos tu información</h4>
+              <p>Usamos tu información para:</p>
+              <ul>
+                <li>Proporcionarte el servicio de La Lista</li>
+                <li>Sincronizar tus datos entre dispositivos</li>
+                <li>Permitir que compartas objetivos públicos con otros usuarios</li>
+              </ul>
+              
+              <h4>3. Almacenamiento</h4>
+              <p>Tus datos se almacenan en Firebase (Google Cloud) con servidores en Europa. Las imágenes se comprimen automáticamente antes de guardarlas.</p>
+              
+              <h4>4. Compartir datos</h4>
+              <p>No compartimos tus datos personales con terceros. Los objetivos que marques como "públicos" serán visibles para otros usuarios de la aplicación.</p>
+              
+              <h4>5. Tus derechos</h4>
+              <p>Puedes:</p>
+              <ul>
+                <li>Acceder a tus datos en cualquier momento</li>
+                <li>Modificar o eliminar tus objetivos</li>
+                <li>Eliminar tu cuenta completamente desde la configuración</li>
+              </ul>
+              
+              <h4>6. Contacto</h4>
+              <p>Para cualquier consulta sobre privacidad, contáctanos en: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="08787a617e696b7148646964617b7c6926697878">[email&#160;protected]</a></p>
+            </div>
+            <div class="modalActions"><button class="primary" id="privacyClose2">Cerrar</button></div>
+          </div>
+        </div>
+
       </div><!-- /appShell -->
 
       <div class="nav">
         <div class="navInner">
           <button class="navBtn active" data-nav="home">⌂</button>
-          <button class="navBtn" data-nav="compass">🧭</button>
           <button class="navBtn" data-nav="profile">👤</button>
         </div>
       </div>
@@ -1418,7 +1686,7 @@
 
 </div><!-- /frame -->
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ================================================================
    STORAGE (por usuario — clave incluye uid)
 ================================================================ */
@@ -1891,9 +2159,11 @@ $("#registerBtn").addEventListener("click", async () => {
   const name  = $("#registerName").value.trim();
   const e     = $("#registerEmail").value.trim();
   const p     = $("#registerPass").value;
+  const accept = $("#acceptPrivacy").checked;
   const errEl = $("#registerError");
   const okEl  = $("#registerSuccess");
   clearAuthError(errEl);
+  if(!accept){ showAuthError(errEl,"Debes aceptar la política de privacidad."); return; }
   if(!e||!p){ showAuthError(errEl,"Rellena correo y contraseña."); return; }
   setAuthLoading(true);
   try{
@@ -1904,6 +2174,17 @@ $("#registerBtn").addEventListener("click", async () => {
   finally{ setAuthLoading(false); }
 });
 
+// PRIVACY MODAL
+$("#privacyLink").addEventListener("click", (e) => {
+  e.preventDefault();
+  $("#privacyModal").classList.add("show");
+});
+$("#privacyClose").addEventListener("click", () => $("#privacyModal").classList.remove("show"));
+$("#privacyClose2").addEventListener("click", () => $("#privacyModal").classList.remove("show"));
+$("#privacyModal").addEventListener("click", (e) => {
+  if(e.target === $("#privacyModal")) $("#privacyModal").classList.remove("show");
+});
+
 // TABS
 $("#tabLogin").addEventListener("click",    () => switchAuthTab("login"));
 $("#tabRegister").addEventListener("click", () => switchAuthTab("register"));
@@ -1912,6 +2193,56 @@ $("#tabRegister").addEventListener("click", () => switchAuthTab("register"));
 $("#signOutBtn").addEventListener("click", async () => {
   if(!confirm("¿Cerrar sesión?")) return;
   await window._fbSignOut();
+});
+
+// DELETE ACCOUNT
+$("#deleteAccountBtn").addEventListener("click", async () => {
+  const confirmed = confirm("⚠️ ADVERTENCIA: Esto eliminará permanentemente tu cuenta y todos tus datos.\n\n¿Estás seguro?");
+  if(!confirmed) return;
+  
+  const doubleCheck = confirm("Esta acción NO se puede deshacer.\n\nEscribe OK en la siguiente ventana para confirmar.");
+  if(!doubleCheck) return;
+  
+  const finalConfirm = prompt("Escribe OK para eliminar tu cuenta:");
+  if(finalConfirm !== "OK") {
+    alert("Eliminación cancelada.");
+    return;
+  }
+  
+  try {
+    const user = window._fbAuth.currentUser;
+    if(!user) return;
+    
+    const uid = user.uid;
+    
+    // Delete Firestore data
+    if(window._fsDeleteObjective) {
+      for(const obj of objetivos) {
+        await window._fsDeleteObjective(uid, obj.id).catch(()=>{});
+      }
+    }
+    
+    // Delete user profile
+    if(window._fsDeleteUser) {
+      await window._fsDeleteUser(uid).catch(()=>{});
+    }
+    
+    // Clear localStorage
+    localStorage.clear();
+    
+    // Delete Firebase Auth account
+    await user.delete();
+    
+    alert("Cuenta eliminada correctamente.");
+    window.location.reload();
+  } catch(err) {
+    if(err.code === 'auth/requires-recent-login') {
+      alert("Por seguridad, debes iniciar sesión de nuevo antes de eliminar tu cuenta.");
+      await window._fbSignOut();
+    } else {
+      alert("Error al eliminar cuenta: " + err.message);
+    }
+  }
 });
 
 /* ================================================================
@@ -1957,6 +2288,7 @@ function refreshMap(){
    RENDER HOME
 ================================================================ */
 const carousel         = $("#carousel");
+const gridViewContainer = $("#gridViewContainer");
 const listViewContainer = $("#listViewContainer");
 const communityFeed    = $("#communityFeed");
 let currentCat = "Todos";
@@ -1980,6 +2312,7 @@ function renderHome(cat){
 
   if(currentCat==="Comunidad"){
     carousel.style.display="none";
+    gridViewContainer.style.display="none";
     listViewContainer.style.display="none";
     communityFeed.style.display="block";
     $("#homeActionsBar").style.display="none";
@@ -1990,6 +2323,7 @@ function renderHome(cat){
   communityFeed.style.display="none";
   $("#homeActionsBar").style.display="flex";
   carousel.style.display="";
+  gridViewContainer.style.display="";
   listViewContainer.style.display="";
 
   const list = objetivos.filter(o => cat==="Todos" || o.cat===cat);
@@ -1998,6 +2332,7 @@ function renderHome(cat){
     console.log("DEBUG renderHome - First objective:", list[0].titulo, "imgs:", list[0].imgs?.length, "firstImg:", firstImg(list[0])?.substring(0,50));
   }
 
+  // Carousel view
   carousel.innerHTML = list.map(o =>
     '<article class="objCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
     +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'+progressBadge(o)+'</div>'
@@ -2008,13 +2343,23 @@ function renderHome(cat){
   ).join("");
   carousel.scrollTo({left:0,behavior:"auto"});
 
-  listViewContainer.innerHTML = list.map(o =>
-    '<div class="listObjCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
+  // Grid view (card style)
+  gridViewContainer.innerHTML = list.map(o =>
+    '<div class="gridObjCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
     +'<div class="listObjImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'+progressBadge(o)+'</div>'
     +'<div class="listObjBody">'
     +'<div class="listObjTitle">'+escapeHTML(o.titulo)+'</div>'
     +'<div class="listObjMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
     +'<div class="listObjBadge '+(o.done?"done":"")+'">'+( o.done?"Cumplido":"Pendiente")+'</div>'
+    +'</div></div>'
+  ).join("") || '<div style="padding:24px 0;text-align:center;color:rgba(11,16,34,.40);font-size:13px;font-weight:700;">No hay objetivos aquí todavía.</div>';
+
+  // List view (numbered list style like your screenshot)
+  listViewContainer.innerHTML = list.map((o, idx) =>
+    '<div class="listObjItem" data-id="'+o.id+'">'
+    +'<div class="listObjNumber">'+(String(idx+1).padStart(3, '0'))+'.</div>'
+    +'<div class="listObjContent">'
+    +'<div class="listObjTitle '+(o.done?"done":"")+'">'+escapeHTML(o.titulo)+'</div>'
     +'</div></div>'
   ).join("") || '<div style="padding:24px 0;text-align:center;color:rgba(11,16,34,.40);font-size:13px;font-weight:700;">No hay objetivos aquí todavía.</div>';
 
@@ -2083,19 +2428,29 @@ communityFeed.addEventListener("click", e => {
 
 function applyViewMode(){
   const btn = $("#viewToggleBtn");
+  
+  // Hide all
+  carousel.classList.add("hidden");
+  gridViewContainer.classList.remove("active");
+  listViewContainer.classList.remove("active");
+  
+  // Show selected
   if(viewMode==="carousel"){
     carousel.classList.remove("hidden");
-    listViewContainer.classList.remove("active");
-    if(btn) btn.textContent="☰";
-  } else {
-    carousel.classList.add("hidden");
+    if(btn) btn.textContent="🔲"; // Grid icon
+  } else if(viewMode==="grid"){
+    gridViewContainer.classList.add("active");
+    if(btn) btn.textContent="☰"; // List icon
+  } else if(viewMode==="list"){
     listViewContainer.classList.add("active");
-    if(btn) btn.textContent="⊟";
+    if(btn) btn.textContent="⊞"; // Carousel icon
   }
 }
 
 $("#viewToggleBtn").addEventListener("click", () => {
-  viewMode = (viewMode==="carousel") ? "list" : "carousel";
+  if(viewMode === "carousel") viewMode = "grid";
+  else if(viewMode === "grid") viewMode = "list";
+  else viewMode = "carousel";
   applyViewMode();
 });
 
@@ -2109,8 +2464,13 @@ carousel.addEventListener("click", e => {
   const card = e.target.closest(".objCard");
   if(card) openDetail(Number(card.dataset.id));
 });
+gridViewContainer.addEventListener("click", e => {
+  const card = e.target.closest(".gridObjCard");
+  if(card) openDetail(Number(card.dataset.id));
+});
+
 listViewContainer.addEventListener("click", e => {
-  const card = e.target.closest(".listObjCard");
+  const card = e.target.closest(".listObjCard, .listObjItem");
   if(card) openDetail(Number(card.dataset.id));
 });
 
@@ -2555,15 +2915,65 @@ $("#peAvatarFile").addEventListener("change", async () => {
   const f = $("#peAvatarFile").files?.[0];
   if(!f) return;
   try{
-    const data = await new Promise((res,rej) => {
+    // Compress avatar to max 100KB
+    const compressed = await new Promise((res,rej) => {
       const r = new FileReader();
-      r.onload = () => res(r.result);
+      r.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Scale down if too large (max 400px)
+          const maxSize = 400;
+          if(width > maxSize || height > maxSize) {
+            if(width > height) {
+              height = (height / width) * maxSize;
+              width = maxSize;
+            } else {
+              width = (width / height) * maxSize;
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress iteratively to get under 100KB
+          const targetSize = 100 * 1024; // 100KB
+          let quality = 0.9;
+          
+          const tryCompress = () => {
+            canvas.toBlob(blob => {
+              if(blob.size <= targetSize || quality <= 0.1) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  console.log("Avatar compressed:", (blob.size/1024).toFixed(0), "KB");
+                  res(reader.result);
+                };
+                reader.readAsDataURL(blob);
+              } else {
+                quality -= 0.1;
+                tryCompress();
+              }
+            }, 'image/jpeg', quality);
+          };
+          
+          tryCompress();
+        };
+        img.onerror = rej;
+        img.src = r.result;
+      };
       r.onerror = rej;
       r.readAsDataURL(f);
     });
+    
     const peAv = $("#peAvatar");
-    peAv.innerHTML = '<img src="'+data+'" alt="av"><div class="avatarOverlay">📷</div>';
-    peAv.dataset.pendingAvatar = data;
+    peAv.innerHTML = '<img src="'+compressed+'" alt="av"><div class="avatarOverlay">📷</div>';
+    peAv.dataset.pendingAvatar = compressed;
   }catch(e){ alert("No se pudo cargar la imagen."); }
   finally{ $("#peAvatarFile").value=""; }
 });
@@ -3003,6 +3413,47 @@ let pendingLocalImgs = [];
 
 function openSettings(){ showSettingsList(); $("#settingsBack").classList.add("show"); }
 function closeSettings(){ $("#settingsBack").classList.remove("show"); editingId=null; pendingLocalImgs=[]; updateLocalCount(); }
+
+// Dark mode toggle
+$("#darkModeBtn").addEventListener("click", () => {
+  const isDark = document.body.classList.toggle("dark-mode");
+  localStorage.setItem("lalista_darkMode", isDark ? "1" : "0");
+  $("#darkModeBtn").textContent = isDark ? "☀️" : "🌙";
+});
+
+// Load dark mode preference on start
+if(localStorage.getItem("lalista_darkMode") === "1") {
+  document.body.classList.add("dark-mode");
+  if($("#darkModeBtn")) $("#darkModeBtn").textContent = "☀️";
+}
+
+// Language switcher
+$("#langES").addEventListener("click", () => {
+  window.setLanguage("es");
+});
+$("#langEN").addEventListener("click", () => {
+  window.setLanguage("en");
+});
+
+// Update language buttons appearance
+function updateLangButtons() {
+  const lang = localStorage.getItem("lalista_lang") || "es";
+  if($("#langES") && $("#langEN")) {
+    if(lang === "es") {
+      $("#langES").style.background = "#0000FF";
+      $("#langES").style.color = "#fff";
+      $("#langEN").style.background = "rgba(0,0,0,.06)";
+      $("#langEN").style.color = "var(--ink)";
+    } else {
+      $("#langEN").style.background = "#0000FF";
+      $("#langEN").style.color = "#fff";
+      $("#langES").style.background = "rgba(0,0,0,.06)";
+      $("#langES").style.color = "var(--ink)";
+    }
+  }
+}
+setTimeout(updateLangButtons, 100); // Update after DOM loads
+
 $("#gearBtn").addEventListener("click", () => {
   if(currentView === "home"){
     openReorderModal();
@@ -3530,16 +3981,4 @@ function updateCategorySelects(){
   if(fCat){
     const current = fCat.value;
     fCat.innerHTML = options;
-    if(userCategories.includes(current)) fCat.value = current;
-  }
-  
-  if(wCat){
-    const current = wCat.value;
-    wCat.innerHTML = options;
-    if(userCategories.includes(current)) wCat.value = current;
-  }
-}
-
-</script>
-</body>
-</html>
+    if(us
