@@ -1988,8 +1988,19 @@ function switchAuthTab(tab){
 
 // Wait for DOM to be fully loaded before adding event listeners
 window.addEventListener('DOMContentLoaded', () => {
+  console.log("✅ DOMContentLoaded - Adding event listeners");
+  
   // Auth modal
-  $("#openLoginBtn").addEventListener("click", () => openAuthModal("login"));
+  const openLoginBtn = $("#openLoginBtn");
+  console.log("openLoginBtn found:", openLoginBtn);
+  
+  if(openLoginBtn) {
+    openLoginBtn.addEventListener("click", () => {
+      console.log("Login button clicked!");
+      openAuthModal("login");
+    });
+  }
+  
   $("#openRegisterBtn").addEventListener("click", () => openAuthModal("register"));
   $("#authModalClose").addEventListener("click", closeAuthModal);
   $("#authModalBack").addEventListener("click", e => { if(e.target === $("#authModalBack")) closeAuthModal(); });
