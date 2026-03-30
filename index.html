@@ -4073,4 +4073,16 @@ function updateCategorySelects(){
   if(fCat){
     const current = fCat.value;
     fCat.innerHTML = options;
-    if(us
+    if(userCategories.includes(current)) fCat.value = current;
+  }
+  
+  if(wCat){
+    const current = wCat.value;
+    wCat.innerHTML = options;
+    if(userCategories.includes(current)) wCat.value = current;
+  }
+}
+
+</script>
+</body>
+</html>
