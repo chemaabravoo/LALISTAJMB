@@ -596,6 +596,12 @@
     .progressBadge.complete{
       background:rgba(34,197,94,.92);
     }
+    .objImgTitle{
+      position:absolute;bottom:12px;left:12px;right:12px;
+      color:#fff;font-size:20px;font-weight:850;
+      text-shadow:0 2px 12px rgba(0,0,0,0.6);
+      line-height:1.2;z-index:1;
+    }
     
     .viewToggleBtn{
       width:40px;height:40px;flex:0 0 auto;border-radius:14px;
@@ -690,7 +696,7 @@
     .objCard.done{opacity:.62;}
     .objCard.done .objImg{filter:saturate(.85) contrast(.95);}
     .objCard.done .objTitle,.objCard.done .objMeta{color:rgba(11,16,34,.55);}
-    .objImg{min-height:400px;background:center/cover no-repeat;}
+    .objImg{flex:1;min-height:300px;background:center/cover no-repeat;}
     .objBody{padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
     .objTitle{font-size:16px;font-weight:850;color:var(--ink);line-height:1.15;}
     .objMeta{margin-top:6px;font-size:13px;color:var(--inkMuted);font-weight:650;}
@@ -2382,9 +2388,8 @@ function renderHome(cat){
     '<article class="objCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
     +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'
     +progressBadge(o)
-    +'<div style="position:absolute;bottom:12px;left:12px;right:12px;color:#fff;">'
-    +'<div style="font-size:20px;font-weight:850;text-shadow:0 2px 12px rgba(0,0,0,0.6);line-height:1.2;">'+escapeHTML(o.titulo)+'</div>'
-    +'</div></div>'
+    +'<div class="objImgTitle">'+escapeHTML(o.titulo)+'</div>'
+    +'</div>'
     +'<div class="objBody"><div>'
     +'<div class="objMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
     +'</div><div class="badge '+(o.done?"done":"")+'">'+( o.done?"Cumplido":o.cat)+'</div></div></article>'
