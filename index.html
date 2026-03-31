@@ -1289,11 +1289,6 @@
             </div>
             <div class="sectionTitle">Pendientes</div>
             <div class="list" id="listPend"></div>
-            <div class="sectionTitle" style="margin-top:14px;">Tema / Theme</div>
-            <div style="display:flex;gap:8px;margin-bottom:16px;">
-              <button class="btnSignOut" id="themeLightBtn" style="flex:1;background:#0000FF;color:#fff;">☀️ Claro</button>
-              <button class="btnSignOut" id="themeDarkBtn" style="flex:1;">🌙 Oscuro</button>
-            </div>
             <div class="sectionTitle" style="margin-top:14px;" data-i18n="Idioma / Language">Idioma / Language</div>
             <div style="display:flex;gap:8px;margin-bottom:16px;">
               <button class="btnSignOut" id="langES" style="flex:1;background:#0000FF;color:#fff;">🇪🇸 Español</button>
@@ -2087,26 +2082,6 @@ function switchAuthTab(tab){
   const registerGoogleBtn = $("#registerGoogleBtn");
   if(loginGoogleBtn) loginGoogleBtn.addEventListener("click", handleGoogleLogin);
   if(registerGoogleBtn) registerGoogleBtn.addEventListener("click", handleGoogleLogin);
-  
-  // Theme buttons
-  const themeLightBtn = $("#themeLightBtn");
-  const themeDarkBtn = $("#themeDarkBtn");
-  
-  if(themeLightBtn) {
-    themeLightBtn.addEventListener("click", () => {
-      document.body.classList.remove("dark-mode");
-      localStorage.setItem("lalista_darkMode", "0");
-      updateThemeButtons();
-    });
-  }
-  
-  if(themeDarkBtn) {
-    themeDarkBtn.addEventListener("click", () => {
-      document.body.classList.add("dark-mode");
-      localStorage.setItem("lalista_darkMode", "1");
-      updateThemeButtons();
-    });
-  }
   
   console.log("✅ All event listeners added");
 })();
@@ -3485,33 +3460,21 @@ function openSettings(){ showSettingsList(); $("#settingsBack").classList.add("s
 function closeSettings(){ $("#settingsBack").classList.remove("show"); editingId=null; pendingLocalImgs=[]; updateLocalCount(); }
 
 // Dark mode toggle
-const updateThemeButtons = () => {
-  const isDark = document.body.classList.contains("dark-mode");
-  const lightBtn = $("#themeLightBtn");
-  const darkBtn = $("#themeDarkBtn");
-  
-  if(lightBtn && darkBtn) {
-    if(isDark) {
-      lightBtn.style.background = "rgba(0,0,0,.06)";
-      lightBtn.style.color = "var(--ink)";
-      darkBtn.style.background = "#0000FF";
-      darkBtn.style.color = "#fff";
-    } else {
-      lightBtn.style.background = "#0000FF";
-      lightBtn.style.color = "#fff";
-      darkBtn.style.background = "rgba(0,0,0,.06)";
-      darkBtn.style.color = "var(--ink)";
-    }
-  }
-};
-
-// Load dark mode preference on start
-if(localStorage.getItem("lalista_darkMode") === "1") {
+// Auto dark mode based on system preferences
+if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
   document.body.classList.add("dark-mode");
 }
-setTimeout(updateThemeButtons, 100);
 
-// Theme button handlers - will be added in DOMContentLoaded later
+// Listen for system theme changes
+if(window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if(e.matches) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+  });
+}
 
 // Language switcher
 $("#langES").addEventListener("click", () => {
