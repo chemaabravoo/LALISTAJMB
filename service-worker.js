@@ -1,77 +1,64 @@
-const CACHE_NAME = 'la-lista-v1';
+// Service Worker v2.0 - Actualización forzada
+const CACHE_NAME = 'lalista-v2.0';
 const urlsToCache = [
-  './',
-  './index.html',
-  './logo.png',
-  './logo blanco.png'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon.png'
 ];
- 
-// Install event - cache resources
+
+// Instalar y cachear recursos
 self.addEventListener('install', event => {
+  console.log('✅ Service Worker v2.0 instalando...');
+  // Forzar activación inmediata
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Cache opened');
+        console.log('📦 Cacheando archivos...');
         return cache.addAll(urlsToCache);
       })
-      .catch(err => {
-        console.log('Cache failed:', err);
-      })
-  );
-  self.skipWaiting();
-});
- 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', event => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
- 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
- 
-        // Clone the request
-        const fetchRequest = event.request.clone();
- 
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
- 
-          // Clone the response
-          const responseToCache = response.clone();
- 
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
- 
-          return response;
-        });
-      })
   );
 });
- 
-// Activate event - clean up old caches
+
+// Activar y limpiar cachés antiguas
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
+  console.log('🔄 Service Worker v2.0 activado');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (cacheName !== CACHE_NAME) {
+            console.log('🗑️ Borrando caché antigua:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // Tomar control de todos los clientes inmediatamente
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
+});
+
+// Estrategia: Network First, luego Cache
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        // Si la respuesta es válida, cachearla
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Si falla la red, usar caché
+        return caches.match(event.request);
+      })
+  );
 });
