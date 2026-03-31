@@ -2402,7 +2402,7 @@ function renderHome(cat){
   // Carousel view
   carousel.innerHTML = list.map(o =>
     '<article class="objCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
-    +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'
+    +'<div class="objImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;filter:brightness(1) saturate(1) contrast(1) !important;opacity:1 !important;">'
     +progressBadge(o)
     +'<div class="objImgTitle">'+escapeHTML(o.titulo)+'</div>'
     +'</div>'
@@ -2415,7 +2415,7 @@ function renderHome(cat){
   // Grid view (card style)
   gridViewContainer.innerHTML = list.map(o =>
     '<div class="gridObjCard '+(o.done?"done":"") + '" data-id="'+o.id+'">'
-    +'<div class="listObjImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;">'+progressBadge(o)+'</div>'
+    +'<div class="listObjImg" style="background-image:url(\''+firstImg(o)+'\');position:relative;filter:brightness(1) saturate(1) contrast(1) !important;opacity:1 !important;">'+progressBadge(o)+'</div>'
     +'<div class="listObjBody">'
     +'<div class="listObjTitle">'+escapeHTML(o.titulo)+'</div>'
     +'<div class="listObjMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
