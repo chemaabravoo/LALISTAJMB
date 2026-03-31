@@ -395,6 +395,13 @@
       --shadow:0 18px 60px rgba(0,0,0,.60);
       --shadow2:0 14px 34px rgba(0,0,0,.40);
     }
+    body.dark-mode .objImg,
+    body.dark-mode .detailHero,
+    body.dark-mode .listObjImg,
+    body.dark-mode .feedCardHero {
+      filter: none !important;
+      opacity: 1 !important;
+    }
 
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
@@ -2392,7 +2399,7 @@ function renderHome(cat){
     +'</div>'
     +'<div class="objBody"><div>'
     +'<div class="objMeta">'+escapeHTML(o.cat)+' · '+eur(o.coste)+(o.place?" · "+escapeHTML(o.place):"")+'</div>'
-    +'</div><div class="badge '+(o.done?"done":"")+'">'+( o.done?"Cumplido":o.cat)+'</div></div></article>'
+    +'</div><div class="badge '+(o.done?"done":"")+'">'+( o.done?"Cumplido":"Pendiente")+'</div></div></article>'
   ).join("");
   carousel.scrollTo({left:0,behavior:"auto"});
 
