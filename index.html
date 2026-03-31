@@ -395,12 +395,18 @@
       --shadow:0 18px 60px rgba(0,0,0,.60);
       --shadow2:0 14px 34px rgba(0,0,0,.40);
     }
-    body.dark-mode .objImg,
+    /* Keep images bright in dark mode - override all filters and opacity */
+    body.dark-mode .objCard .objImg,
+    body.dark-mode .objCard.done .objImg,
     body.dark-mode .detailHero,
     body.dark-mode .listObjImg,
+    body.dark-mode .gridObjCard .listObjImg,
     body.dark-mode .feedCardHero {
-      filter: none !important;
+      filter: brightness(1) saturate(1) contrast(1) !important;
       opacity: 1 !important;
+    }
+    body.dark-mode .objCard {
+      background: var(--card);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
